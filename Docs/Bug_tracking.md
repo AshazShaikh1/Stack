@@ -57,6 +57,23 @@ Error: new row violates row-level security policy for table "cards"
 - Use the server client (`createClient` from `@/lib/supabase/server`) only in Server Components.
 - Test RLS policies with actual authenticated requests, not just service role.
 
+### Realtime Removed
+**Date:** 2024-12-19
+**Status:** Resolved
+**Severity:** N/A
+
+**Description:**
+Realtime/replication features have been removed from the project. All updates are now handled via manual refetch after user actions.
+
+**Reason:**
+Realtime requires replication which may have cost implications. The app works perfectly without it - users just need to refresh to see other users' changes.
+
+**Solution:**
+- Removed all realtime subscription code from `useVotes.ts` and `useComments.ts`
+- Removed realtime migration files
+- Updated documentation to reflect this change
+- App now uses optimistic updates + manual refetch pattern
+
 ## Resolved Issues
 
-_No resolved issues yet. This section will be populated as bugs are fixed._
+_Issues are moved here after being resolved and verified._

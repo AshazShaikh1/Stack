@@ -2,8 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
 import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/Button';
+import { useVotes } from '@/hooks/useVotes';
 import { createClient } from '@/lib/supabase/client';
 
 interface StackHeaderProps {
@@ -33,9 +34,14 @@ interface StackHeaderProps {
 }
 
 export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
-  const [isUpvoted, setIsUpvoted] = useState(false);
+  const { upvotes, voted, isLoading, error, toggleVote } = useVotes({
+    targetType: 'stack',
+    targetId: stack.id,
+    initialUpvotes: stack.stats.upvotes || 0,
+    initialVoted: false, // Will be fetched by hook
+  });
+
   const [isSaved, setIsSaved] = useState(false);
-  const [upvoteCount, setUpvoteCount] = useState(stack.stats.upvotes || 0);
   const [saveCount, setSaveCount] = useState(stack.stats.saves || 0);
   const [user, setUser] = useState<any>(null);
 
@@ -43,61 +49,10 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
-      if (user) {
-        // Check if user has upvoted
-        supabase
-          .from('votes')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('target_type', 'stack')
-          .eq('target_id', stack.id)
-          .single()
-          .then(({ data }) => {
-            if (data) setIsUpvoted(true);
-          });
-      }
     });
-  }, [stack.id]);
-
-  const handleUpvote = async () => {
-    if (!user) return;
-
-    const supabase = createClient();
-    const wasUpvoted = isUpvoted;
-
-    // Optimistic update
-    setIsUpvoted(!wasUpvoted);
-    setUpvoteCount(prev => wasUpvoted ? prev - 1 : prev + 1);
-
-    try {
-      if (wasUpvoted) {
-        // Remove upvote
-        await supabase
-          .from('votes')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('target_type', 'stack')
-          .eq('target_id', stack.id);
-      } else {
-        // Add upvote
-        await supabase
-          .from('votes')
-          .insert({
-            user_id: user.id,
-            target_type: 'stack',
-            target_id: stack.id,
-          });
-      }
-    } catch (error) {
-      // Revert on error
-      setIsUpvoted(wasUpvoted);
-      setUpvoteCount(prev => wasUpvoted ? prev + 1 : prev - 1);
-      console.error('Error toggling upvote:', error);
-    }
-  };
+  }, []);
 
   const handleSave = async () => {
-    if (!user) return;
     // TODO: Implement save functionality
     alert('Save functionality coming soon!');
   };
@@ -199,14 +154,17 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
       {/* Action Bar */}
       <div className="flex items-center gap-4 pb-6 border-b border-gray-light">
         <Button
-          variant={isUpvoted ? 'primary' : 'outline'}
+          variant={voted ? 'primary' : 'outline'}
           size="sm"
-          onClick={handleUpvote}
-          disabled={!user}
+          onClick={toggleVote}
+          disabled={isLoading}
         >
           <span className="mr-2">👍</span>
-          {upvoteCount} {upvoteCount === 1 ? 'Upvote' : 'Upvotes'}
+          {upvotes} {upvotes === 1 ? 'Upvote' : 'Upvotes'}
         </Button>
+        {error && (
+          <span className="text-small text-red-500 ml-2">{error}</span>
+        )}
 
         <Button
           variant={isSaved ? 'primary' : 'outline'}

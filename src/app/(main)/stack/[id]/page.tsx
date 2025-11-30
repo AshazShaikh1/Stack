@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { StackHeader } from '@/components/stack/StackHeader';
 import { CardPreview } from '@/components/card/CardPreview';
 import { AddCardButton } from '@/components/card/AddCardButton';
+import { CommentsSection } from '@/components/comments/CommentsSection';
 import { notFound } from 'next/navigation';
 
 interface StackPageProps {
@@ -116,6 +117,9 @@ export default async function StackPage({ params }: StackPageProps) {
           )}
         </div>
       )}
+
+      {/* Comments Section */}
+      <CommentsSection targetType="stack" targetId={stack.id} />
     </div>
   );
 }

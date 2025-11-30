@@ -143,8 +143,8 @@
 - [x] Implement Feed page with personalized algorithm (tag-based boosting, trending)
 - [x] Build Explore page (categories, trending stacks, top stackers, filters: Most Upvoted/Newest)
 - [x] Create Profile page (created stacks, saved stacks, basic stats: views, upvotes)
-- [ ] Implement Upvote system (one per user, account age check 48h, real-time updates)
-- [ ] Build Comments system (threaded comments with 4-level nesting, real-time updates)
+- [x] Implement Upvote system (one per user, account age check 48h, real-time updates)
+- [x] Build Comments system (threaded comments with 4-level nesting, real-time updates)
 - [ ] Implement Search functionality (Postgres full-text search + pg_trgm fuzzy matching)
 - [ ] Create explore_ranking materialized view and refresh job (every 5-15 minutes)
 - [ ] Build basic admin UI for reports and moderation

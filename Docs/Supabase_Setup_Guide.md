@@ -56,11 +56,13 @@ supabase db push
 ### Option B: Using Supabase Dashboard
 
 1. Go to **SQL Editor** in your Supabase dashboard
-2. Open `supabase/migrations/001_initial_schema.sql`
-3. Copy and paste the entire file into the SQL Editor
-4. Click "Run" (or press Cmd/Ctrl + Enter)
-5. Repeat for `002_rls_policies.sql`
-6. Review `003_storage_buckets.sql` for storage setup
+2. Run migrations in order:
+   - `supabase/migrations/001_initial_schema.sql`
+   - `supabase/migrations/002_rls_policies.sql`
+   - `supabase/migrations/003_storage_buckets.sql` (review for storage setup)
+   - `supabase/migrations/004_user_profile_trigger.sql`
+   - `supabase/migrations/005_fix_cards_rls.sql`
+3. For each file: Copy and paste into SQL Editor, then click "Run"
 
 ## Step 4: Set Up Storage Buckets
 
@@ -134,16 +136,9 @@ npm run dev
 4. Check Supabase dashboard → **Authentication** → **Users** to see the new user
 5. Check **Table Editor** → **users** to see the user profile
 
-## Step 8: Set Up Realtime (Optional for MVP)
+## Step 8: Realtime (Not Used)
 
-Realtime is enabled by default in Supabase. To use it:
-
-1. Go to **Database** → **Replication** in Supabase dashboard
-2. Enable replication for tables you want real-time updates:
-   - ✅ `comments`
-   - ✅ `notifications`
-   - ✅ `votes`
-   - ✅ `stacks` (for stats updates)
+Realtime/replication is not used in this project. All updates are handled via manual refetch after user actions (e.g., posting a comment, voting).
 
 ## Step 9: Set Up Database Functions (Optional)
 
