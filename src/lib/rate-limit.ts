@@ -33,22 +33,6 @@ export const rateLimiters = {
     prefix: '@ratelimit:votes',
   }),
 
-  // Extension saves: 10/min, 60/day (PRD: extension-specific rate-limits)
-  extensionSaves: {
-    perMinute: new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(10, '1 m'),
-      analytics: true,
-      prefix: '@ratelimit:extension:min',
-    }),
-    perDay: new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(60, '1 d'),
-      analytics: true,
-      prefix: '@ratelimit:extension:day',
-    }),
-  },
-
   // Clones: 10/day per user (PRD: clones/day limit 10/day)
   clones: new Ratelimit({
     redis,

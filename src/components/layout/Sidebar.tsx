@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react';
 export function Sidebar() {
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     const supabase = createClient();
@@ -72,29 +71,14 @@ export function Sidebar() {
       {/* Bottom Actions */}
       <div className="flex flex-col gap-4">
         {user && (
-          <>
-            <Link
-              href="/notifications"
-              className="relative w-12 h-12 rounded-lg flex items-center justify-center text-2xl text-gray-muted hover:bg-gray-light hover:text-jet transition-all duration-200"
-              title="Notifications"
-              aria-label="Notifications"
-            >
-              🔔
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                  {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                </span>
-              )}
-            </Link>
-            <Link
-              href={`/profile/${user.id}`}
-              className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl text-gray-muted hover:bg-gray-light hover:text-jet transition-all duration-200"
-              title="Profile"
-              aria-label="Profile"
-            >
-              👤
-            </Link>
-          </>
+          <Link
+            href={`/profile/${user.username || user.id}`}
+            className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl text-gray-muted hover:bg-gray-light hover:text-jet transition-all duration-200"
+            title="Profile"
+            aria-label="Profile"
+          >
+            👤
+          </Link>
         )}
       </div>
     </aside>

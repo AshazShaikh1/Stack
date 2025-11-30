@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
+import { useFollow } from '@/hooks/useFollow';
 
 interface ProfileHeaderProps {
   profile: {
@@ -14,6 +15,8 @@ interface ProfileHeaderProps {
       stacks_saved: number;
       total_upvotes: number;
       total_views: number;
+      followers?: number;
+      following?: number;
     };
   };
   isOwnProfile?: boolean;
@@ -25,7 +28,23 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
     stacks_saved: 0,
     total_upvotes: 0,
     total_views: 0,
+    followers: 0,
+    following: 0,
   };
+
+  const {
+    isFollowing,
+    followerCount,
+    followingCount,
+    isLoading: isFollowLoading,
+    error: followError,
+    toggleFollow,
+  } = useFollow({
+    userId: profile.id,
+    initialIsFollowing: false,
+    initialFollowerCount: stats.followers || 0,
+    initialFollowingCount: stats.following || 0,
+  });
 
   return (
     <div className="mb-8">
@@ -70,8 +89,13 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
               </>
             ) : (
               <>
-                <Button variant="primary" size="sm">
-                  Follow
+                <Button
+                  variant={isFollowing ? 'outline' : 'primary'}
+                  size="sm"
+                  onClick={toggleFollow}
+                  disabled={isFollowLoading}
+                >
+                  {isFollowLoading ? '...' : isFollowing ? 'Unfollow' : 'Follow'}
                 </Button>
                 <Button variant="outline" size="sm">
                   Share profile
@@ -79,6 +103,9 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
               </>
             )}
           </div>
+          {followError && (
+            <p className="text-sm text-red-500 mt-2">{followError}</p>
+          )}
         </div>
       </div>
 
@@ -92,9 +119,15 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
         </div>
         <div>
           <div className="text-h2 font-bold text-jet-dark">
-            {stats.stacks_saved}
+            {followerCount}
           </div>
-          <div className="text-small text-gray-muted">Saved</div>
+          <div className="text-small text-gray-muted">Followers</div>
+        </div>
+        <div>
+          <div className="text-h2 font-bold text-jet-dark">
+            {followingCount}
+          </div>
+          <div className="text-small text-gray-muted">Following</div>
         </div>
         <div>
           <div className="text-h2 font-bold text-jet-dark">

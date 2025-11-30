@@ -234,22 +234,7 @@ CREATE INDEX idx_clones_cloner ON clones (cloner_id, created_at DESC);
 CREATE INDEX idx_clones_original ON clones (original_stack_id);
 
 -- ============================================
--- 12. EXTENSION_SAVES TABLE
--- ============================================
-CREATE TABLE extension_saves (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  url text NOT NULL,
-  stack_id uuid REFERENCES stacks(id) ON DELETE SET NULL,
-  status text DEFAULT 'queued' CHECK (status IN ('queued', 'processing', 'done', 'failed')),
-  created_at timestamptz DEFAULT now()
-);
-
-CREATE INDEX idx_extension_saves_user ON extension_saves (user_id, created_at DESC);
-CREATE INDEX idx_extension_saves_status ON extension_saves (status) WHERE status IN ('queued', 'processing');
-
--- ============================================
--- 13. LINK_CHECKS TABLE
+-- 12. LINK_CHECKS TABLE
 -- ============================================
 CREATE TABLE link_checks (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

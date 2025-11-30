@@ -113,7 +113,7 @@
 - [x] Set up Next.js 14 project with TypeScript and App Router
 - [x] Configure Tailwind CSS with design system tokens (Jet color, spacing, typography)
 - [ ] Set up Supabase project and configure environment variables
-- [ ] Create database schema migrations (all 16 tables: users, stacks, cards, stack_cards, tags, stack_tags, card_tags, votes, comments, notifications, clones, extension_saves, link_checks, reports, payments, explore_ranking materialized view)
+- [ ] Create database schema migrations (all tables: users, stacks, cards, stack_cards, tags, stack_tags, card_tags, votes, comments, notifications, clones, link_checks, reports, payments, explore_ranking materialized view)
 - [ ] Implement database constraints, indexes, and triggers (unique constraints, full-text search indexes, tsvector columns)
 - [ ] Set up Row-Level Security (RLS) policies for all tables
 - [ ] Configure Supabase Auth (email + OAuth providers: Google, GitHub)
@@ -148,7 +148,7 @@
 - [x] Implement Search functionality (Postgres full-text search + pg_trgm fuzzy matching)
 - [x] Create explore_ranking materialized view and refresh job (every 5-15 minutes)
 - [x] Build basic admin UI for reports and moderation
-- [x] Implement rate limiting for all APIs (card creation, extension saves, votes, comments, clones)
+- [x] Implement rate limiting for all APIs (card creation, votes, comments, clones)
 
 ### Stage 3: Advanced Features
 **Duration:** 2-3 weeks
@@ -157,11 +157,11 @@
 #### Sub-steps:
 
 - [x] Implement Clone feature (private clone of public stacks, 10/day limit, auto-cleanup after 7 days)
-- [ ] Build Browser Extension with Plasmo (popup UI, stack selection, quick save, authentication flow)
-- [ ] Create extension_saves queue processing worker
-- [ ] Implement Notifications system (real-time in-app notifications, unread counts, mark as read)
-- [ ] Build notification bell component with real-time updates
-- [ ] Implement Follow system (follow/unfollow stackers, follower counts, real-time updates)
+- [ ] ~~Build Browser Extension with Plasmo~~ (REMOVED - dropped feature)
+- [ ] ~~Create extension_saves queue processing worker~~ (REMOVED - dropped feature)
+- [ ] ~~Implement Notifications system~~ (REMOVED)
+- [ ] ~~Build notification bell component~~ (REMOVED)
+- [x] Implement Follow system (follow/unfollow stackers, follower counts, real-time updates)
 - [ ] Create Monetization features (Promoted Stacks, Featured Stackers, Paid hidden Stacks, Reserve username)
 - [ ] Integrate Stripe Checkout for payments
 - [ ] Build Stripe webhook handler for payment processing

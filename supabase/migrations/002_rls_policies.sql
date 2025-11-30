@@ -14,7 +14,6 @@ ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clones ENABLE ROW LEVEL SECURITY;
-ALTER TABLE extension_saves ENABLE ROW LEVEL SECURITY;
 ALTER TABLE link_checks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
@@ -341,29 +340,6 @@ CREATE POLICY "Authenticated users can create clones"
 ON clones FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = cloner_id);
-
--- ============================================
--- EXTENSION_SAVES POLICIES
--- ============================================
-
--- Users can view their own extension saves
-CREATE POLICY "Users can view own extension saves"
-ON extension_saves FOR SELECT
-TO authenticated
-USING (auth.uid() = user_id);
-
--- Authenticated users can create extension saves
-CREATE POLICY "Authenticated users can create extension saves"
-ON extension_saves FOR INSERT
-TO authenticated
-WITH CHECK (auth.uid() = user_id);
-
--- Users can update their own extension saves
-CREATE POLICY "Users can update own extension saves"
-ON extension_saves FOR UPDATE
-TO authenticated
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
 
 -- ============================================
 -- LINK_CHECKS POLICIES

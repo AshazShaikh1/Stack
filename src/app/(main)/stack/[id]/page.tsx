@@ -12,38 +12,109 @@ interface StackPageProps {
 }
 
 export default async function StackPage({ params }: StackPageProps) {
-  const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    const { id } = await params;
+    
+    if (!id || id.trim() === '') {
+      console.error('Invalid stack ID provided:', id);
+      notFound();
+    }
 
-  // Get stack with owner and tags
-  const { data: stack, error: stackError } = await supabase
-    .from('stacks')
-    .select(`
-      id,
-      title,
-      description,
-      cover_image_url,
-      owner_id,
-      stats,
-      is_public,
-      is_hidden,
-      owner:users!stacks_owner_id_fkey (
-        username,
-        display_name,
-        avatar_url
-      ),
-      tags:stack_tags (
-        tag:tags (
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Helper function to check if string is a valid UUID
+    const isUUID = (str: string): boolean => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      return uuidRegex.test(str);
+    };
+
+    // Get stack with owner and tags
+    // Try by UUID first if it looks like a UUID, otherwise try by slug
+    let stack: any = null;
+    let stackError: any = null;
+    
+    if (isUUID(id)) {
+      // Try by UUID first
+      const result = await supabase
+        .from('stacks')
+        .select(`
           id,
-          name
-        )
-      )
-    `)
-    .eq('id', id)
-    .single();
+          title,
+          description,
+          cover_image_url,
+          owner_id,
+          stats,
+          is_public,
+          is_hidden,
+          slug,
+          owner:users!stacks_owner_id_fkey (
+            username,
+            display_name,
+            avatar_url
+          ),
+          tags:stack_tags (
+            tag:tags (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('id', id)
+        .maybeSingle();
+      
+      stack = result.data;
+      stackError = result.error;
+    }
 
-  if (stackError || !stack) {
+    // If not found by UUID (or not a UUID), try by slug
+    if (!stack && !stackError) {
+      const result = await supabase
+        .from('stacks')
+        .select(`
+          id,
+          title,
+          description,
+          cover_image_url,
+          owner_id,
+          stats,
+          is_public,
+          is_hidden,
+          slug,
+          owner:users!stacks_owner_id_fkey (
+            username,
+            display_name,
+            avatar_url
+          ),
+          tags:stack_tags (
+            tag:tags (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('slug', id)
+        .maybeSingle();
+      
+      stack = result.data;
+      stackError = result.error;
+    }
+
+  if (stackError) {
+    // Log detailed error information
+    console.error('Error fetching stack:', {
+      message: stackError.message,
+      details: stackError.details,
+      hint: stackError.hint,
+      code: stackError.code,
+      id: id,
+      error: JSON.stringify(stackError, Object.getOwnPropertyNames(stackError)),
+    });
+    notFound();
+  }
+
+  if (!stack) {
+    console.error('Stack not found for id/slug:', id);
     notFound();
   }
 
@@ -53,6 +124,13 @@ export default async function StackPage({ params }: StackPageProps) {
                   (stack.is_hidden && stack.owner_id === user?.id);
 
   if (!canView) {
+    console.error('Access denied to stack:', {
+      stack_id: stack.id,
+      is_public: stack.is_public,
+      is_hidden: stack.is_hidden,
+      owner_id: stack.owner_id,
+      user_id: user?.id,
+    });
     notFound();
   }
 
@@ -60,6 +138,9 @@ export default async function StackPage({ params }: StackPageProps) {
 
   // Transform tags
   const transformedTags = stack.tags?.map((st: any) => st.tag).filter(Boolean) || [];
+
+  // Ensure owner is a single object, not an array
+  const owner = Array.isArray(stack.owner) ? stack.owner[0] : stack.owner;
 
   // Get cards in this stack
   const { data: stackCards, error: cardsError } = await supabase
@@ -88,6 +169,7 @@ export default async function StackPage({ params }: StackPageProps) {
       <StackHeader 
         stack={{
           ...stack,
+          owner: owner,
           tags: transformedTags,
         }}
         isOwner={isOwner}
@@ -122,5 +204,12 @@ export default async function StackPage({ params }: StackPageProps) {
       <CommentsSection targetType="stack" targetId={stack.id} />
     </div>
   );
+  } catch (error) {
+    console.error('Unexpected error in StackPage:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    notFound();
+  }
 }
 

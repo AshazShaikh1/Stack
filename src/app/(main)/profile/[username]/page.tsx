@@ -33,7 +33,7 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
   const isOwnProfile = currentUser?.id === profileUser.id;
 
   // Get stats
-  const [createdCount, savedCount, upvotesResult, viewsResult] = await Promise.all([
+  const [createdCount, savedCount, upvotesResult, viewsResult, followerCount, followingCount] = await Promise.all([
     supabase
       .from('stacks')
       .select('id', { count: 'exact', head: true })
@@ -50,6 +50,14 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
       .from('stacks')
       .select('stats', { count: 'exact' })
       .eq('owner_id', profileUser.id),
+    supabase
+      .from('follows')
+      .select('id', { count: 'exact', head: true })
+      .eq('following_id', profileUser.id),
+    supabase
+      .from('follows')
+      .select('id', { count: 'exact', head: true })
+      .eq('follower_id', profileUser.id),
   ]);
 
   const totalViews = viewsResult.data?.reduce((sum, stack) => {
@@ -63,6 +71,8 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
       stacks_saved: savedCount.count || 0,
       total_upvotes: upvotesResult.count || 0,
       total_views: totalViews,
+      followers: followerCount.count || 0,
+      following: followingCount.count || 0,
     },
   };
 
