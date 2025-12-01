@@ -66,9 +66,9 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
       .select('id', { count: 'exact', head: true })
       .eq('owner_id', profileUser.id),
     supabase
-      .from('stack_cards')
-      .select('stack_id', { count: 'exact', head: true })
-      .eq('added_by', profileUser.id),
+      .from('saves')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', profileUser.id),
     supabase
       .from('votes')
       .select('id', { count: 'exact', head: true })
@@ -126,15 +126,16 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
       stacksQuery = stacksQuery.eq('is_public', true).eq('is_hidden', false);
     }
   } else if (tab === 'saved') {
-    // Get saved stacks (stacks that user has added cards to)
-    const { data: savedStacks } = await supabase
-      .from('stack_cards')
+    // Get saved stacks from saves table
+    const { data: saves } = await supabase
+      .from('saves')
       .select('stack_id')
-      .eq('added_by', profileUser.id)
+      .eq('user_id', profileUser.id)
+      .order('created_at', { ascending: false })
       .limit(100);
 
-    if (savedStacks && savedStacks.length > 0) {
-      const stackIds = savedStacks.map(sc => sc.stack_id);
+    if (saves && saves.length > 0) {
+      const stackIds = saves.map(s => s.stack_id);
       stacksQuery = stacksQuery.in('id', stackIds);
       if (!isOwnProfile) {
         stacksQuery = stacksQuery.eq('is_public', true).eq('is_hidden', false);

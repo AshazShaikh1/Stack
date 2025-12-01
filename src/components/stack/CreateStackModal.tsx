@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { BasicInfoStep } from './BasicInfoStep';
 import { OptionalDetailsStep } from './OptionalDetailsStep';
+import { BecomeStackerModal } from '@/components/auth/BecomeStackerModal';
 import type { StackVisibility } from '@/types';
 
 interface CreateStackModalProps {
@@ -29,6 +30,8 @@ export function CreateStackModal({ isOpen, onClose, fromCardCreation = false, on
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [showBecomeStacker, setShowBecomeStacker] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -43,6 +46,26 @@ export function CreateStackModal({ isOpen, onClose, fromCardCreation = false, on
       setError('');
       setIsLoading(false);
       setIsDragging(false);
+      setShowBecomeStacker(false);
+    }
+  }, [isOpen]);
+
+  // Fetch user role
+  useEffect(() => {
+    if (isOpen) {
+      const supabase = createClient();
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          supabase
+            .from('users')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+            .then(({ data }) => {
+              setUserRole(data?.role || 'user');
+            });
+        }
+      });
     }
   }, [isOpen]);
 
@@ -128,59 +151,43 @@ export function CreateStackModal({ isOpen, onClose, fromCardCreation = false, on
         coverImageUrl = publicUrl;
       }
 
-      // Create stack
-      const { data: stack, error: stackError } = await supabase
-        .from('stacks')
-        .insert({
-          title,
-          description: description || null,
-          slug,
-          is_public: visibility === 'public',
-          is_hidden: visibility === 'unlisted',
-          cover_image_url: coverImageUrl,
-          owner_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (stackError) {
-        setError(stackError.message || 'Failed to create stack');
+      // Check if user is trying to publish and is not a stacker
+      if (visibility === 'public' && userRole !== 'stacker' && userRole !== 'admin') {
+        setShowBecomeStacker(true);
         setIsLoading(false);
         return;
       }
 
-      // Handle tags
-      if (tags.trim()) {
-        const tagNames = tags
-          .split(',')
-          .map(t => t.trim().toLowerCase())
-          .filter(t => t.length > 0)
-          .slice(0, 10);
+      // Create stack via API
+      const response = await fetch('/api/stacks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          description: description || null,
+          tags: tags.split(',').map(t => t.trim()).filter(t => t),
+          is_public: visibility === 'public',
+          is_hidden: visibility === 'unlisted',
+          cover_image_url: coverImageUrl,
+        }),
+      });
 
-        for (const tagName of tagNames) {
-          let { data: tag } = await supabase
-            .from('tags')
-            .select('id')
-            .eq('name', tagName)
-            .single();
+      const stackData = await response.json();
 
-          if (!tag) {
-            const { data: newTag } = await supabase
-              .from('tags')
-              .insert({ name: tagName })
-              .select()
-              .single();
-            tag = newTag;
-          }
-
-          if (tag) {
-            await supabase.from('stack_tags').insert({
-              stack_id: stack.id,
-              tag_id: tag.id,
-            });
-          }
+      if (!response.ok) {
+        if (response.status === 403 && stackData.become_stacker_required) {
+          setShowBecomeStacker(true);
+          setIsLoading(false);
+          return;
         }
+        setError(stackData.error || 'Failed to create stack');
+        setIsLoading(false);
+        return;
       }
+
+      const stack = stackData;
+
+      // Tags are handled by the API
 
       // Track analytics
       if (user) {
@@ -277,6 +284,33 @@ export function CreateStackModal({ isOpen, onClose, fromCardCreation = false, on
           />
         </div>
       </form>
+
+      {/* Become Stacker Modal */}
+      <BecomeStackerModal
+        isOpen={showBecomeStacker}
+        onClose={() => {
+          setShowBecomeStacker(false);
+          // If user declines, change visibility to private
+          if (visibility === 'public') {
+            setVisibility('private');
+          }
+        }}
+        onSuccess={async () => {
+          // User became stacker, update role and retry stack creation
+          setUserRole('stacker');
+          setShowBecomeStacker(false);
+          
+          // Wait a bit for session to refresh, then retry
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Retry the submit by calling handleSubmit directly
+          const fakeEvent = {
+            preventDefault: () => {},
+          } as React.FormEvent;
+          await handleSubmit(fakeEvent);
+        }}
+        requiredFields={['display_name', 'short_bio']}
+      />
     </Modal>
   );
 }

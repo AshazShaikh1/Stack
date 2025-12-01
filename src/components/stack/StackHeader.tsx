@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { EditStackModal } from '@/components/stack/EditStackModal';
 import { useVotes } from '@/hooks/useVotes';
+import { useSaves } from '@/hooks/useSaves';
 import { ReportButton } from '@/components/report/ReportButton';
 import { createClient } from '@/lib/supabase/client';
 import { trackEvent } from '@/lib/analytics';
@@ -49,8 +50,11 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
     initialVoted: false, // Will be fetched by hook
   });
 
-  const [isSaved, setIsSaved] = useState(false);
-  const [saveCount, setSaveCount] = useState(stack.stats.saves || 0);
+  const { saves: saveCount, saved: isSaved, isLoading: isSaving, toggleSave } = useSaves({
+    stackId: stack.id,
+    initialSaves: stack.stats.saves || 0,
+    initialSaved: false, // Will be fetched by hook
+  });
   const [user, setUser] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -61,17 +65,6 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
       setUser(user);
     });
   }, []);
-
-  const handleSave = async () => {
-    if (!user) {
-      if (confirm('Please sign in to save stacks. Would you like to sign in now?')) {
-        window.location.href = '/login';
-      }
-      return;
-    }
-    // TODO: Implement save functionality
-    alert('Save functionality coming soon!');
-  };
 
   const handleShare = () => {
     if (navigator.share) {
@@ -246,8 +239,8 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
         <Button
           variant={isSaved ? 'primary' : 'outline'}
           size="sm"
-          onClick={handleSave}
-          disabled={!user}
+          onClick={toggleSave}
+          disabled={isSaving}
         >
           <span className="mr-2">💾</span>
           {saveCount} {saveCount === 1 ? 'Save' : 'Saves'}

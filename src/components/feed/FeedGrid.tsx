@@ -1,47 +1,38 @@
 'use client';
 
-import { StackCard } from '@/components/stack/StackCard';
+import { FeedItem } from './FeedItem';
 import { StackGridSkeleton } from '@/components/ui/Skeleton';
 import { EmptyStacksState } from '@/components/ui/EmptyState';
 
-interface Stack {
+interface FeedItem {
+  type: 'card' | 'stack';
   id: string;
-  title: string;
-  description?: string;
-  cover_image_url?: string;
-  owner_id: string;
-  stats: {
-    views: number;
-    upvotes: number;
-    saves: number;
-    comments: number;
-  };
-  owner?: {
-    username: string;
-    display_name: string;
-    avatar_url?: string;
-  };
+  [key: string]: any;
 }
 
 interface FeedGridProps {
-  stacks: Stack[];
+  items?: FeedItem[];
+  stacks?: any[]; // Legacy support
   isLoading?: boolean;
   onCreateStack?: () => void;
 }
 
-export function FeedGrid({ stacks, isLoading, onCreateStack }: FeedGridProps) {
+export function FeedGrid({ items, stacks, isLoading, onCreateStack }: FeedGridProps) {
   if (isLoading) {
     return <StackGridSkeleton count={12} />;
   }
 
-  if (stacks.length === 0) {
+  // Support both new items format and legacy stacks format
+  const feedItems = items || (stacks ? stacks.map(s => ({ type: 'stack' as const, ...s })) : []);
+
+  if (feedItems.length === 0) {
     return <EmptyStacksState onCreateStack={onCreateStack} />;
   }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {stacks.map((stack) => (
-        <StackCard key={stack.id} stack={stack} />
+      {feedItems.map((item) => (
+        <FeedItem key={`${item.type}-${item.id}`} item={item} />
       ))}
     </div>
   );

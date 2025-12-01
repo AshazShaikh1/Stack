@@ -195,7 +195,7 @@ export async function PATCH(
     // Check if stack exists and user is owner
     const { data: stack, error: stackError } = await supabase
       .from('stacks')
-      .select('id, owner_id')
+      .select('id, owner_id, is_public')
       .eq('id', id)
       .single();
 
@@ -211,6 +211,27 @@ export async function PATCH(
         { error: 'Forbidden: You can only edit your own stacks' },
         { status: 403 }
       );
+    }
+
+    // Check if user is trying to publish (change from private to public) and is not a stacker
+    const isTryingToPublish = body.is_public === true && stack.is_public === false;
+    if (isTryingToPublish || body.is_public === true) {
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (userProfile?.role !== 'stacker' && userProfile?.role !== 'admin') {
+        return NextResponse.json(
+          { 
+            error: 'Only Stackers can publish public stacks',
+            become_stacker_required: true,
+            required_fields: ['display_name', 'avatar_url', 'short_bio']
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // Update stack

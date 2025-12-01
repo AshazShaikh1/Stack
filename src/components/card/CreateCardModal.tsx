@@ -239,15 +239,12 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
       return;
     }
     setError('');
+    // Allow skipping stack selection - user can create standalone card
     setStep('stack');
   };
 
   const handleSubmit = async () => {
-    if (!selectedStackId) {
-      setError('Please select a stack');
-      return;
-    }
-
+    // Stack is optional - allow standalone cards
     setIsLoading(true);
     setError('');
 
@@ -302,7 +299,13 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
         }
       }
 
-      // Create card
+      // Determine source
+      const isFromExtension = !!(initialUrl || initialFileData);
+      const cardSource = isFromExtension 
+        ? 'extension' 
+        : (selectedStackId ? 'stack' : 'manual');
+
+      // Create card (standalone or with stack)
       const response = await fetch('/api/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -311,7 +314,9 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
           title: title.trim(),
           description: description.trim() || undefined,
           thumbnail_url: thumbnailUrl || undefined,
-          stack_id: selectedStackId,
+          stack_id: selectedStackId || undefined,
+          is_public: true, // Standalone cards are public by default
+          source: cardSource,
         }),
       });
 
@@ -329,9 +334,9 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
         // Check if this is from extension (has initialUrl or initialFileData)
         const isFromExtension = !!(initialUrl || initialFileData);
         if (isFromExtension) {
-          trackEvent.extensionSave(user.id, cardData.card.id, selectedStackId, cardType || 'link');
+          trackEvent.extensionSave(user.id, cardData.card.id, selectedStackId || '', cardType || 'link');
         } else {
-          trackEvent.addCard(user.id, cardData.card.id, selectedStackId, cardType || 'link');
+          trackEvent.addCard(user.id, cardData.card.id, selectedStackId || '', cardType || 'link');
         }
       }
 

@@ -1,56 +1,28 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { LandingPage } from '@/components/landing/LandingPage';
-import { FeedGrid } from '@/components/feed/FeedGrid';
+import { HomeFeed } from '@/components/feed/HomeFeed';
 
 export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // If signed in, show feed (home)
-  if (user) {
-    // Get current user
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-
-    // For now, show public stacks (later: personalized feed)
-    const { data: stacks, error } = await supabase
-      .from('stacks')
-      .select(`
-        id,
-        title,
-        description,
-        cover_image_url,
-        owner_id,
-        stats,
-        owner:users!stacks_owner_id_fkey (
-          username,
-          display_name,
-          avatar_url
-        )
-      `)
-      .eq('is_public', true)
-      .eq('is_hidden', false)
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (error) {
-      console.error('Error fetching stacks:', error);
-    }
-
-    return (
-      <div className="container mx-auto px-page py-section">
-        <div className="mb-8">
-          <h1 className="text-h1 font-bold text-jet-dark mb-2">Home</h1>
-          <p className="text-body text-gray-muted">
-            Discover curated resources from the community
-          </p>
-        </div>
-
-        <FeedGrid stacks={stacks || []} />
-      </div>
-    );
+  // If signed out, show landing page
+  if (!user) {
+    return <LandingPage />;
   }
 
-  // If signed out, show landing page
-  return <LandingPage />;
+  // If signed in, show feed (home) with cards and stacks
+  return (
+    <div className="container mx-auto px-page py-section">
+      <div className="mb-8">
+        <h1 className="text-h1 font-bold text-jet-dark mb-2">Home</h1>
+        <p className="text-body text-gray-muted">
+          Discover curated resources from the community
+        </p>
+      </div>
+
+      <HomeFeed />
+    </div>
+  );
 }

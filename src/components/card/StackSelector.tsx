@@ -92,6 +92,17 @@ export function StackSelector({
         </div>
       )}
 
+      {/* Option to create standalone card */}
+      <div className="pt-4 border-t border-gray-light">
+        <button
+          onClick={onSubmit}
+          className="w-full p-3 rounded-lg border-2 border-dashed border-gray-light hover:border-jet/50 transition-all text-center"
+        >
+          <span className="text-body text-jet-dark font-medium">Create as standalone card</span>
+          <p className="text-small text-gray-muted mt-1">Save without adding to a stack</p>
+        </button>
+      </div>
+
       <div className="flex gap-3">
         <Button
           type="button"
@@ -108,9 +119,8 @@ export function StackSelector({
           className="flex-1"
           onClick={onSubmit}
           isLoading={isLoading}
-          disabled={!selectedStackId}
         >
-          Create Card
+          {selectedStackId ? 'Add to Stack' : 'Create Card'}
         </Button>
       </div>
     </div>

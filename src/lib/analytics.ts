@@ -319,5 +319,16 @@ export const trackEvent = {
       userId: userId || undefined,
     });
   },
+
+  /**
+   * Track become stacker
+   */
+  becomeStacker: (userId: string) => {
+    analytics.track({
+      name: 'become_stacker',
+      properties: {},
+      userId,
+    });
+  },
 };
 
