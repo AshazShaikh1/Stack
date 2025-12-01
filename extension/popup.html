@@ -25,7 +25,7 @@
       <!-- Loading State -->
       <div id="loading" class="loading">
         <div class="spinner"></div>
-        <div class="loading-text">Fetching page info...</div>
+        <div class="loading-text">Loading...</div>
       </div>
 
       <!-- Error State -->
@@ -38,9 +38,62 @@
         <span id="error-text"></span>
       </div>
 
-      <!-- Content -->
-      <div id="content" class="content" style="display: none;">
-        <!-- Preview Card -->
+      <!-- Step 1: Card Type Selection -->
+      <div id="type-selection" class="step-content" style="display: none;">
+        <div class="step-header">
+          <h2 class="step-title">Create Card</h2>
+        </div>
+        <div class="type-options">
+          <button class="type-option" data-type="link">
+            <div class="type-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </div>
+            <div class="type-content">
+              <h3 class="type-title">Link</h3>
+              <p class="type-description">Add a resource link from the web</p>
+            </div>
+          </button>
+
+          <button class="type-option" data-type="image">
+            <div class="type-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div class="type-content">
+              <h3 class="type-title">Image</h3>
+              <p class="type-description">Upload an image file</p>
+            </div>
+          </button>
+
+          <button class="type-option" data-type="docs">
+            <div class="type-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div class="type-content">
+              <h3 class="type-title">Document</h3>
+              <p class="type-description">Upload a document file</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Card Details (Link) -->
+      <div id="link-details" class="step-content" style="display: none;">
+        <div class="step-header">
+          <button id="back-btn" class="back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <h2 class="step-title">Link Details</h2>
+        </div>
+
+        <!-- Preview Card (Link) -->
         <div class="preview-card">
           <div id="preview-image-container" class="preview-image-container" style="display: none;">
             <img id="preview-image" class="preview-image" src="" alt="Preview" />
@@ -58,7 +111,7 @@
         </div>
 
         <!-- Action Button -->
-        <a id="save-btn" href="#" target="_blank" class="btn btn-primary" role="button" tabindex="0">
+        <a id="save-link-btn" href="#" target="_blank" class="btn btn-primary" role="button" tabindex="0">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
             <polyline points="17 21 17 13 7 13 7 21"/>
@@ -77,8 +130,78 @@
           <span id="link-text" class="link-text">View page</span>
         </a>
       </div>
+
+      <!-- Step 2: Card Details (Image/Doc) -->
+      <div id="file-details" class="step-content" style="display: none;">
+        <div class="step-header">
+          <button id="back-btn-file" class="back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <h2 class="step-title" id="file-step-title">File Details</h2>
+        </div>
+
+        <!-- Image Upload Method Toggle (only for images) -->
+        <div id="image-method-toggle" class="method-toggle" style="display: none;">
+          <button type="button" id="toggle-file" class="toggle-btn active">Upload File</button>
+          <button type="button" id="toggle-url" class="toggle-btn">Image URL</button>
+        </div>
+
+        <!-- Drag and Drop Area -->
+        <div id="drop-zone" class="drop-zone">
+          <input type="file" id="file-input" style="display: none;" />
+          <div id="drop-content" class="drop-content">
+            <svg class="drop-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <p class="drop-text-primary">Drag and drop a file here</p>
+            <p class="drop-text-secondary">or use the button below</p>
+            <p id="file-types" class="drop-text-hint"></p>
+            <button type="button" id="browse-file-btn" class="btn btn-primary" style="margin-top: 12px; width: auto; padding: 8px 16px;">
+              Browse Files
+            </button>
+          </div>
+          <div id="file-preview" class="file-preview" style="display: none;">
+            <div id="file-preview-content"></div>
+            <button id="remove-file" class="remove-file-btn">Remove</button>
+          </div>
+        </div>
+
+        <!-- Image URL Input (only for images) -->
+        <div id="image-url-section" class="input-group" style="display: none;">
+          <label class="input-label">Image URL</label>
+          <input type="url" id="image-url-input" class="input-field" placeholder="https://example.com/image.jpg" />
+          <p class="input-hint" style="font-size: 12px; color: #666; margin-top: 4px;">Enter a direct link to an image</p>
+          <div id="image-url-preview" style="margin-top: 12px; display: none;">
+            <img id="image-url-preview-img" src="" alt="Preview" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e5e5;" />
+            <button type="button" id="remove-url-btn" class="remove-file-btn" style="margin-top: 8px;">Remove</button>
+          </div>
+        </div>
+
+        <!-- Title Input -->
+        <div class="input-group">
+          <label class="input-label">Title</label>
+          <input type="text" id="file-title" class="input-field" placeholder="Card title" required />
+        </div>
+
+        <!-- Description Input -->
+        <div class="input-group">
+          <label class="input-label">Description</label>
+          <textarea id="file-description" class="input-field textarea-field" placeholder="Card description (optional)" rows="3"></textarea>
+        </div>
+
+        <!-- Action Button -->
+        <a id="save-file-btn" href="#" target="_blank" class="btn btn-primary" role="button" tabindex="0" style="display: none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+          <span>Save to Stack</span>
+        </a>
+      </div>
     </div>
     <script src="popup.js"></script>
   </body>
 </html>
-

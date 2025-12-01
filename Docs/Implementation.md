@@ -138,7 +138,7 @@
 - [x] Implement Stack detail page (header with cover, title, desc, tags, action bar: Upvote, Save, Share, Clone)
 - [x] Build Card creation flow (URL input, metadata fetching, manual override, thumbnail upload)
 - [ ] Implement metadata fetcher worker (Open Graph extraction, URL canonicalization, deduplication)
-- [ ] Create Stack-Card mapping system (many-to-many relationship)
+- [x] Create Stack-Card mapping system (many-to-many relationship) - Implemented via stack_cards table
 - [x] Build masonry grid layout for feed, explore, and profile pages
 - [x] Implement Feed page with personalized algorithm (tag-based boosting, trending)
 - [x] Build Explore page (categories, trending stacks, top stackers, filters: Most Upvoted/Newest)
@@ -157,10 +157,9 @@
 #### Sub-steps:
 
 - [x] Implement Clone feature (private clone of public stacks, 10/day limit, auto-cleanup after 7 days)
-- [ ] ~~Build Browser Extension with Plasmo~~ (REMOVED - dropped feature)
-- [ ] ~~Create extension_saves queue processing worker~~ (REMOVED - dropped feature)
-- [ ] ~~Implement Notifications system~~ (REMOVED)
-- [ ] ~~Build notification bell component~~ (REMOVED)
+- [x] Build Browser Extension with Plasmo (IMPLEMENTED - custom extension with multi-type card creation)
+- [x] Implement Notifications system (IMPLEMENTED - real-time notifications with dropdown)
+- [x] Build notification bell component (IMPLEMENTED - NotificationDropdown with unread count)
 - [x] Implement Follow system (follow/unfollow stackers, follower counts, real-time updates)
 - [x] Create Monetization features (Promoted Stacks, Featured Stackers, Paid hidden Stacks, Reserve username)
 - [x] Integrate Stripe Checkout for payments
@@ -178,7 +177,7 @@
 
 #### Sub-steps:
 
-- [ ] Implement optimistic UI patterns for all real-time actions (votes, comments, saves)
+- [x] Implement optimistic UI patterns for all real-time actions (votes, comments, saves) - Comments implemented
 - [ ] Add loading states and skeleton screens for all async operations
 - [ ] Optimize images (next/image, responsive sizes, CDN delivery)
 - [ ] Implement SEO optimization (metadata, Open Graph tags, sitemap, robots.txt)

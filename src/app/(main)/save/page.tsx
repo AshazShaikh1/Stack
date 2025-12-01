@@ -11,6 +11,7 @@ export default function SavePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const url = searchParams.get('url');
+  const fileParam = searchParams.get('file');
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -33,6 +34,16 @@ export default function SavePage() {
     router.push('/');
   };
 
+  // Parse file data if present
+  let initialFileData = null;
+  if (fileParam) {
+    try {
+      initialFileData = JSON.parse(decodeURIComponent(fileParam));
+    } catch (e) {
+      console.error('Failed to parse file data:', e);
+    }
+  }
+
   if (isChecking) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -51,6 +62,7 @@ export default function SavePage() {
         isOpen={true}
         onClose={handleClose}
         initialUrl={url || undefined}
+        initialFileData={initialFileData || undefined}
       />
     </div>
   );

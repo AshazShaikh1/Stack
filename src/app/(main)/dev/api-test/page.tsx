@@ -1,362 +1,530 @@
 'use client';
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
-interface Endpoint {
+interface EndpointConfig {
   method: string;
   path: string;
-  description: string;
-  requiresAuth: boolean;
-  body?: Record<string, any>;
-  queryParams?: Record<string, string>;
-  pathParam?: string;
+  label: string;
+  requiresAuth?: boolean;
+  note?: string;
+  body?: any;
+  query?: any;
+  pathParams?: { [key: string]: string }; // e.g., { '[id]': 'stack-id-input' }
+  bodyFields?: { [key: string]: string }; // e.g., { 'stack_id': 'stack-id-input' }
 }
 
-export default function ApiTestPage() {
-  const [results, setResults] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState<Record<string, boolean>>({});
+export default function APITestPage() {
+  const [results, setResults] = useState<any>({});
+  const [loading, setLoading] = useState<string | null>(null);
+  const [inputs, setInputs] = useState<{ [key: string]: string }>({
+    'stack-id': '',
+    'card-id': '',
+    'user-id': '',
+    'comment-id': '',
+    'notification-id': '',
+    'report-id': '',
+    'stack-id-input': '',
+    'card-id-input': '',
+    'url-input': 'https://example.com',
+    'title-input': 'Test Title',
+    'description-input': 'Test Description',
+    'content-input': 'Test comment content',
+    'search-query': 'test',
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const endpoints: Endpoint[] = [
-    // Cards
-    {
-      method: 'POST',
-      path: '/api/cards',
-      description: 'Create a new card',
-      requiresAuth: true,
-      body: {
-        url: 'https://example.com',
-        stack_id: 'stack-id-here',
-      },
-    },
-    {
-      method: 'GET',
-      path: '/api/cards/metadata',
-      description: 'Fetch metadata from URL',
-      requiresAuth: false,
-      queryParams: {
-        url: 'https://example.com',
-      },
-    },
-    // Votes
-    {
-      method: 'POST',
-      path: '/api/votes',
-      description: 'Toggle upvote on stack/card',
-      requiresAuth: true,
-      body: {
-        target_type: 'stack',
-        target_id: 'target-id-here',
-      },
-    },
-    // Comments
-    {
-      method: 'GET',
-      path: '/api/comments',
-      description: 'Get comments for stack/card',
-      requiresAuth: false,
-      queryParams: {
-        target_type: 'stack',
-        target_id: 'target-id-here',
-      },
-    },
-    {
-      method: 'POST',
-      path: '/api/comments',
-      description: 'Create a comment',
-      requiresAuth: true,
-      body: {
-        target_type: 'stack',
-        target_id: 'target-id-here',
-        content: 'Test comment',
-        parent_id: null,
-      },
-    },
-    // Search
-    {
-      method: 'GET',
-      path: '/api/search',
-      description: 'Search stacks, cards, users',
-      requiresAuth: false,
-      queryParams: {
-        q: 'test',
-        type: 'all',
-      },
-    },
-    // Follows
-    {
-      method: 'POST',
-      path: '/api/follows',
-      description: 'Follow a user',
-      requiresAuth: true,
-      body: {
-        following_id: 'user-id-here',
-      },
-    },
-    {
-      method: 'GET',
-      path: '/api/follows/check/[id]',
-      description: 'Check if following user',
-      requiresAuth: true,
-      pathParam: 'user-id-here',
-    },
-    {
-      method: 'DELETE',
-      path: '/api/follows/[id]',
-      description: 'Unfollow a user',
-      requiresAuth: true,
-      pathParam: 'user-id-here',
-    },
-    // Reports
-    {
-      method: 'GET',
-      path: '/api/reports',
-      description: 'Get reports (admin only)',
-      requiresAuth: true,
-      queryParams: {
-        status: 'open',
-        limit: '50',
-      },
-    },
-    {
-      method: 'POST',
-      path: '/api/reports',
-      description: 'Create a report',
-      requiresAuth: true,
-      body: {
-        target_type: 'stack',
-        target_id: 'target-id-here',
-        reason: 'spam',
-      },
-    },
-    {
-      method: 'PATCH',
-      path: '/api/reports/[id]',
-      description: 'Update report status (admin only)',
-      requiresAuth: true,
-      pathParam: 'report-id-here',
-      body: {
-        status: 'resolved',
-      },
-    },
-    // Stacks Clone
-    {
-      method: 'POST',
-      path: '/api/stacks/[id]/clone',
-      description: 'Clone a stack',
-      requiresAuth: true,
-      pathParam: 'stack-id-here',
-    },
-    // Payments
-    {
-      method: 'POST',
-      path: '/api/payments/checkout',
-      description: 'Create Stripe checkout session',
-      requiresAuth: true,
-      body: {
-        type: 'promote',
-        duration: '7days',
-        stack_id: 'stack-id-here',
-      },
-    },
-    // Admin
-    {
-      method: 'POST',
-      path: '/api/admin/refresh-ranking',
-      description: 'Refresh explore ranking',
-      requiresAuth: true,
-    },
-    // Workers
-    {
-      method: 'POST',
-      path: '/api/workers/check-links',
-      description: 'Check link health (worker)',
-      requiresAuth: false,
-      queryParams: {
-        limit: '10',
-      },
-    },
-  ];
+  // Check auth status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+    checkAuth();
+  }, []);
 
-  const callEndpoint = async (endpoint: Endpoint) => {
-    const key = `${endpoint.method}-${endpoint.path}`;
-    setLoading(prev => ({ ...prev, [key]: true }));
+  const updateInput = (key: string, value: string) => {
+    setInputs((prev) => ({ ...prev, [key]: value }));
+  };
 
+  const testEndpoint = async (endpoint: EndpointConfig) => {
+    setLoading(endpoint.path);
     try {
-      let url = endpoint.path;
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // Replace path params
-      if (endpoint.pathParam && url.includes('[id]')) {
-        url = url.replace('[id]', endpoint.pathParam);
+      if (endpoint.requiresAuth && !session) {
+        setResults((prev: any) => ({
+          ...prev,
+          [endpoint.path]: {
+            method: endpoint.method,
+            error: 'You must be logged in to use this endpoint',
+            timestamp: new Date().toISOString(),
+          },
+        }));
+        setLoading(null);
+        return;
       }
 
-      // Add query params
-      if (endpoint.queryParams) {
-        const params = new URLSearchParams(endpoint.queryParams);
-        url += `?${params.toString()}`;
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      // Build path with replacements
+      let finalPath = endpoint.path;
+      if (endpoint.pathParams) {
+        Object.entries(endpoint.pathParams).forEach(([placeholder, inputKey]) => {
+          const value = inputs[inputKey];
+          if (value) {
+            finalPath = finalPath.replace(placeholder, value);
+          } else {
+            throw new Error(`Missing required parameter: ${inputKey}`);
+          }
+        });
+      }
+
+      // Build body with replacements
+      let finalBody: any = null;
+      if (endpoint.bodyFields || endpoint.body) {
+        // Start with endpoint.body if it exists, otherwise empty object
+        finalBody = endpoint.body ? { ...endpoint.body } : {};
+        
+        // Add values from input fields
+        if (endpoint.bodyFields) {
+          Object.entries(endpoint.bodyFields).forEach(([field, inputKey]) => {
+            const value = inputs[inputKey];
+            // Include value if it exists (even empty string - let API validate)
+            if (value !== undefined && value !== null) {
+              finalBody[field] = value.trim ? value.trim() : value;
+            }
+          });
+        }
+      }
+
+      // Build query params
+      let finalQuery: any = null;
+      if (endpoint.query) {
+        finalQuery = { ...endpoint.query };
+        // Replace any query params that reference inputs
+        if (endpoint.bodyFields) {
+          Object.entries(endpoint.bodyFields).forEach(([field, inputKey]) => {
+            const value = inputs[inputKey];
+            if (value !== undefined && value !== null && value !== '') {
+              finalQuery[field] = value;
+            }
+          });
+        }
       }
 
       const options: RequestInit = {
         method: endpoint.method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
       };
 
-      // Add body for POST/PATCH
-      if (endpoint.body && (endpoint.method === 'POST' || endpoint.method === 'PATCH')) {
-        options.body = JSON.stringify(endpoint.body);
+      // Send body for POST/PATCH/PUT requests
+      if (endpoint.method !== 'GET' && finalBody) {
+        options.body = JSON.stringify(finalBody);
       }
 
-      // Get auth token from Supabase
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (endpoint.requiresAuth && session?.access_token) {
-        options.headers = {
-          ...options.headers,
-          'Authorization': `Bearer ${session.access_token}`,
-        };
-      }
+      const url = endpoint.method === 'GET' && finalQuery
+        ? `/api${finalPath}?${new URLSearchParams(finalQuery as any).toString()}`
+        : `/api${finalPath}`;
 
       const response = await fetch(url, options);
-      const data = await response.json();
+      
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        const text = await response.text();
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            data = { error: `Invalid JSON response: ${text.substring(0, 100)}` };
+          }
+        } else {
+          data = { error: 'Empty response' };
+        }
+      } else {
+        const text = await response.text();
+        data = { error: `Expected JSON but got ${contentType || 'unknown'}: ${text.substring(0, 200)}` };
+      }
 
-      setResults(prev => ({
+      setResults((prev: any) => ({
         ...prev,
-        [key]: {
+        [endpoint.path]: {
+          method: endpoint.method,
           status: response.status,
-          statusText: response.statusText,
           data,
           timestamp: new Date().toISOString(),
         },
       }));
     } catch (error: any) {
-      setResults(prev => ({
+      setResults((prev: any) => ({
         ...prev,
-        [key]: {
+        [endpoint.path]: {
+          method: endpoint.method,
           error: error.message,
           timestamp: new Date().toISOString(),
         },
       }));
     } finally {
-      setLoading(prev => ({ ...prev, [key]: false }));
+      setLoading(null);
     }
   };
 
+  const endpoints: EndpointConfig[] = [
+    // Stacks
+    { 
+      method: 'GET', 
+      path: '/stacks/[id]', 
+      label: 'Get Stack', 
+      requiresAuth: false,
+      pathParams: { '[id]': 'stack-id' }
+    },
+    { 
+      method: 'POST', 
+      path: '/stacks', 
+      label: 'Create Stack', 
+      requiresAuth: true,
+      body: { is_public: true, is_hidden: false },
+      bodyFields: { title: 'title-input', description: 'description-input' }
+    },
+    
+    // Cards
+    { 
+      method: 'GET', 
+      path: '/cards/[id]', 
+      label: 'Get Card', 
+      requiresAuth: false,
+      pathParams: { '[id]': 'card-id' }
+    },
+    { 
+      method: 'POST', 
+      path: '/cards', 
+      label: 'Create Card', 
+      requiresAuth: true,
+      body: {},
+      bodyFields: { url: 'url-input', title: 'title-input', description: 'description-input', stack_id: 'stack-id-input' }
+    },
+    { 
+      method: 'POST', 
+      path: '/cards/metadata', 
+      label: 'Get Card Metadata', 
+      requiresAuth: false,
+      body: {},
+      bodyFields: { url: 'url-input' }
+    },
+    
+    // Comments
+    { 
+      method: 'GET', 
+      path: '/comments', 
+      label: 'Get Comments', 
+      requiresAuth: false,
+      query: { target_type: 'stack' },
+      bodyFields: { 'target_id': 'stack-id-input' }
+    },
+    { 
+      method: 'POST', 
+      path: '/comments', 
+      label: 'Create Comment', 
+      requiresAuth: true,
+      body: { target_type: 'stack' },
+      bodyFields: { target_id: 'stack-id-input', content: 'content-input' }
+    },
+    
+    // Votes
+    { 
+      method: 'POST', 
+      path: '/votes', 
+      label: 'Vote', 
+      requiresAuth: true,
+      body: { target_type: 'stack', vote_type: 'upvote' },
+      bodyFields: { target_id: 'stack-id-input' }
+    },
+    
+    // Follows
+    { 
+      method: 'POST', 
+      path: '/follows', 
+      label: 'Follow User', 
+      requiresAuth: true,
+      body: {},
+      bodyFields: { following_id: 'user-id' }
+    },
+    { 
+      method: 'GET', 
+      path: '/follows/check/[id]', 
+      label: 'Check Follow Status', 
+      requiresAuth: true,
+      pathParams: { '[id]': 'user-id' }
+    },
+    
+    // Notifications
+    { 
+      method: 'GET', 
+      path: '/notifications', 
+      label: 'Get Notifications', 
+      requiresAuth: true
+    },
+    { 
+      method: 'GET', 
+      path: '/notifications/unread-count', 
+      label: 'Get Unread Count', 
+      requiresAuth: true
+    },
+    { 
+      method: 'POST', 
+      path: '/notifications/read-all', 
+      label: 'Mark All as Read', 
+      requiresAuth: true
+    },
+    
+    // Search
+    { 
+      method: 'GET', 
+      path: '/search', 
+      label: 'Search', 
+      requiresAuth: false,
+      query: { type: 'all' },
+      bodyFields: { 'q': 'search-query' }
+    },
+    
+    // Metadata
+    { 
+      method: 'POST', 
+      path: '/metadata', 
+      label: 'Get Metadata', 
+      requiresAuth: false,
+      body: {},
+      bodyFields: { url: 'url-input' }
+    },
+    
+    // Admin
+    { 
+      method: 'POST', 
+      path: '/admin/refresh-ranking', 
+      label: 'Refresh Ranking', 
+      requiresAuth: true
+    },
+  ];
+
   return (
-    <div className="container mx-auto px-page py-section">
-      <div className="mb-8">
-        <h1 className="text-h1 font-bold text-jet-dark mb-2">API Test Page (Dev Only)</h1>
-        <p className="text-body text-gray-muted mb-4">
-          Test all API endpoints. Make sure you're logged in for authenticated endpoints.
+    <div className="container mx-auto px-page py-8">
+      <h1 className="text-h1 font-bold text-jet-dark mb-6">API Endpoints Test Page</h1>
+      
+      {/* Auth Status */}
+      <div className={`mb-6 p-4 rounded-lg ${isAuthenticated ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'}`}>
+        <p className="text-body font-medium">
+          {isAuthenticated ? '✅ You are logged in' : '⚠️ You are not logged in - Some endpoints require authentication'}
         </p>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <p className="text-sm text-yellow-800">
-            <strong>Note:</strong> This page is for development only. Replace placeholder IDs (like 'stack-id-here') 
-            with actual IDs from your database before testing.
-          </p>
+      </div>
+
+      {/* Input Fields */}
+      <div className="mb-8 p-4 bg-gray-light rounded-lg">
+        <h2 className="text-h2 font-semibold text-jet-dark mb-4">Input Values</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-small font-medium text-jet-dark mb-1">Stack ID</label>
+            <input
+              type="text"
+              value={inputs['stack-id']}
+              onChange={(e) => updateInput('stack-id', e.target.value)}
+              placeholder="Enter stack UUID"
+              className="w-full px-3 py-2 border border-gray-light rounded-md text-body"
+            />
+          </div>
+          <div>
+            <label className="block text-small font-medium text-jet-dark mb-1">Stack ID (for body)</label>
+            <input
+              type="text"
+              value={inputs['stack-id-input']}
+              onChange={(e) => updateInput('stack-id-input', e.target.value)}
+              placeholder="Enter stack UUID"
+              className="w-full px-3 py-2 border border-gray-light rounded-md text-body"
+            />
+          </div>
+          <div>
+            <label className="block text-small font-medium text-jet-dark mb-1">Card ID</label>
+            <input
+              type="text"
+              value={inputs['card-id']}
+              onChange={(e) => updateInput('card-id', e.target.value)}
+              placeholder="Enter card UUID"
+              className="w-full px-3 py-2 border border-gray-light rounded-md text-body"
+            />
+          </div>
+          <div>
+            <label className="block text-small font-medium text-jet-dark mb-1">User ID</label>
+            <input
+              type="text"
+              value={inputs['user-id']}
+              onChange={(e) => updateInput('user-id', e.target.value)}
+              placeholder="Enter user UUID"
+              className="w-full px-3 py-2 border border-gray-light rounded-md text-body"
+            />
+          </div>
+          <div>
+            <label className="block text-small font-medium text-jet-dark mb-1">URL</label>
+            <input
+              type="text"
+              value={inputs['url-input']}
+              onChange={(e) => updateInput('url-input', e.target.value)}
+              placeholder="https://example.com"
+              className="w-full px-3 py-2 border border-gray-light rounded-md text-body"
+            />
+          </div>
+          <div>
+            <label className="block text-small font-medium text-jet-dark mb-1">Title</label>
+            <input
+              type="text"
+              value={inputs['title-input']}
+              onChange={(e) => updateInput('title-input', e.target.value)}
+              placeholder="Test Title"
+              className="w-full px-3 py-2 border border-gray-light rounded-md text-body"
+            />
+          </div>
+          <div>
+            <label className="block text-small font-medium text-jet-dark mb-1">Description</label>
+            <input
+              type="text"
+              value={inputs['description-input']}
+              onChange={(e) => updateInput('description-input', e.target.value)}
+              placeholder="Test Description"
+              className="w-full px-3 py-2 border border-gray-light rounded-md text-body"
+            />
+          </div>
+          <div>
+            <label className="block text-small font-medium text-jet-dark mb-1">Content/Comment</label>
+            <input
+              type="text"
+              value={inputs['content-input']}
+              onChange={(e) => updateInput('content-input', e.target.value)}
+              placeholder="Test comment"
+              className="w-full px-3 py-2 border border-gray-light rounded-md text-body"
+            />
+          </div>
+          <div>
+            <label className="block text-small font-medium text-jet-dark mb-1">Search Query</label>
+            <input
+              type="text"
+              value={inputs['search-query']}
+              onChange={(e) => updateInput('search-query', e.target.value)}
+              placeholder="test"
+              className="w-full px-3 py-2 border border-gray-light rounded-md text-body"
+            />
+          </div>
         </div>
       </div>
 
-      <div className="space-y-8">
-        {endpoints.map((endpoint, index) => {
-          const key = `${endpoint.method}-${endpoint.path}`;
-          const result = results[key];
-          const isLoading = loading[key];
+      <p className="text-body text-gray-muted mb-8">
+        Fill in the input values above (if needed), then click "Test" on any endpoint below.
+      </p>
 
-          return (
-            <div key={index} className="border border-gray-200 rounded-lg p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className={`px-2 py-1 rounded text-xs font-mono font-bold ${
-                      endpoint.method === 'GET' ? 'bg-blue-100 text-blue-800' :
-                      endpoint.method === 'POST' ? 'bg-green-100 text-green-800' :
-                      endpoint.method === 'PATCH' ? 'bg-yellow-100 text-yellow-800' :
-                      endpoint.method === 'DELETE' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {endpoint.method}
-                    </span>
-                    <code className="text-sm font-mono text-jet-dark">{endpoint.path}</code>
-                    {endpoint.requiresAuth && (
-                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">
-                        Auth Required
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-muted">{endpoint.description}</p>
-                </div>
-                <Button
-                  onClick={() => callEndpoint(endpoint)}
-                  disabled={isLoading}
-                  size="sm"
-                  variant="primary"
-                >
-                  {isLoading ? 'Testing...' : 'Test'}
-                </Button>
-              </div>
-
-              {(endpoint.body || endpoint.queryParams) && (
-                <div className="mb-4 p-3 bg-gray-50 rounded text-xs">
-                  <strong>Request:</strong>
-                  <pre className="mt-1 text-xs overflow-x-auto">
-                    {endpoint.body && (
-                      <>
-                        <strong>Body:</strong>
-                        {JSON.stringify(endpoint.body, null, 2)}
-                      </>
-                    )}
-                    {endpoint.queryParams && (
-                      <>
-                        <strong>Query Params:</strong>
-                        {JSON.stringify(endpoint.queryParams, null, 2)}
-                      </>
-                    )}
-                    {endpoint.pathParam && (
-                      <>
-                        <strong>Path Param:</strong> {endpoint.pathParam}
-                      </>
-                    )}
-                  </pre>
-                </div>
-              )}
-
-              {result && (
-                <div className={`p-3 rounded text-xs ${
-                  result.error ? 'bg-red-50 border border-red-200' :
-                  result.status >= 400 ? 'bg-yellow-50 border border-yellow-200' :
-                  'bg-green-50 border border-green-200'
+      <div className="space-y-4">
+        {endpoints.map((endpoint, idx) => (
+          <div key={idx} className="border border-gray-light rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`inline-block px-2 py-1 text-white text-xs font-mono rounded ${
+                  endpoint.method === 'GET' ? 'bg-blue-600' :
+                  endpoint.method === 'POST' ? 'bg-green-600' :
+                  endpoint.method === 'PATCH' ? 'bg-yellow-600' :
+                  endpoint.method === 'DELETE' ? 'bg-red-600' : 'bg-gray-600'
                 }`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <strong>Response:</strong>
-                    {result.status && (
-                      <span className={`px-2 py-1 rounded ${
-                        result.status >= 400 ? 'bg-red-200 text-red-800' :
-                        'bg-green-200 text-green-800'
-                      }`}>
-                        {result.status} {result.statusText}
-                      </span>
-                    )}
-                  </div>
-                  <pre className="overflow-x-auto text-xs">
-                    {JSON.stringify(result.data || result, null, 2)}
-                  </pre>
-                  {result.timestamp && (
-                    <p className="text-xs text-gray-500 mt-2">
-                      {new Date(result.timestamp).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-              )}
+                  {endpoint.method}
+                </span>
+                <span className="text-body font-mono text-jet-dark">{endpoint.path}</span>
+                <span className="text-body font-medium text-jet-dark">{endpoint.label}</span>
+                {endpoint.requiresAuth && (
+                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Auth Required</span>
+                )}
+              </div>
+              <button
+                onClick={() => testEndpoint(endpoint)}
+                disabled={loading === endpoint.path}
+                className="px-4 py-2 bg-jet text-white rounded-md hover:bg-jet-dark disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                {loading === endpoint.path ? 'Testing...' : 'Test'}
+              </button>
             </div>
-          );
-        })}
+            {endpoint.note && (
+              <p className="text-small text-gray-muted mb-2">{endpoint.note}</p>
+            )}
+            {(endpoint.body || endpoint.query || endpoint.bodyFields) && (
+              <div className="mt-2">
+                {endpoint.bodyFields && (
+                  <div className="mb-2">
+                    <p className="text-xs text-gray-muted mb-1">Required Fields (fill in inputs above):</p>
+                    <div className="text-xs bg-yellow-50 border border-yellow-200 p-2 rounded">
+                      {Object.entries(endpoint.bodyFields).map(([field, inputKey]) => (
+                        <div key={field} className="mb-1">
+                          <span className="font-mono font-semibold">{field}:</span>{' '}
+                          <span className={inputs[inputKey] ? 'text-green-600' : 'text-red-600'}>
+                            {inputs[inputKey] || '(empty - fill in input field)'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {endpoint.body && Object.keys(endpoint.body).length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-xs text-gray-muted mb-1">Static Body Values:</p>
+                    <pre className="text-xs bg-gray-light p-2 rounded overflow-x-auto">
+                      {JSON.stringify(endpoint.body, null, 2)}
+                    </pre>
+                  </div>
+                )}
+                {endpoint.query && (
+                  <div>
+                    <p className="text-xs text-gray-muted mb-1">Query Params:</p>
+                    <pre className="text-xs bg-gray-light p-2 rounded overflow-x-auto">
+                      {JSON.stringify(endpoint.query, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
+            {results[endpoint.path] && (
+              <div className="mt-3 p-3 bg-gray-light rounded">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-xs font-semibold ${
+                    results[endpoint.path].status >= 200 && results[endpoint.path].status < 300
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                  }`}>
+                    Status: {results[endpoint.path].status || 'Error'}
+                  </span>
+                  <span className="text-xs text-gray-muted">
+                    {results[endpoint.path].timestamp}
+                  </span>
+                </div>
+                <pre className="text-xs overflow-x-auto max-h-96">
+                  {JSON.stringify(results[endpoint.path].data || results[endpoint.path].error, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 p-4 bg-jet/5 rounded-lg">
+        <h2 className="text-h2 font-semibold text-jet-dark mb-2">Quick Reference</h2>
+        <p className="text-body text-gray-muted mb-4">
+          For a complete API reference, see <code className="bg-gray-light px-2 py-1 rounded">Docs/API_Endpoints.md</code>
+        </p>
+        <div className="space-y-2 text-small">
+          <p><strong>Base URL:</strong> <code className="bg-gray-light px-2 py-1 rounded">http://localhost:3000/api</code></p>
+          <p><strong>Authentication:</strong> Most endpoints require a valid Supabase session cookie</p>
+          <p><strong>Rate Limits:</strong> Some endpoints have rate limiting (see docs)</p>
+        </div>
       </div>
     </div>
   );
 }
-

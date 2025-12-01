@@ -71,31 +71,35 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={title ? 'modal-title' : undefined}
-    >
+    <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-200 ${
+        className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity duration-200 ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={onClose}
         aria-hidden="true"
+        style={{ display: shouldRender ? 'block' : 'none' }}
       />
 
-      {/* Modal Content */}
+      {/* Modal Container */}
       <div
-        className={`
-          relative bg-white rounded-lg shadow-modal w-full ${sizeStyles[size]}
-          max-h-[90vh] overflow-y-auto
-          transition-all duration-200
-          ${isVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'}
-        `}
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? 'modal-title' : undefined}
+        style={{ display: shouldRender ? 'flex' : 'none' }}
       >
+        {/* Modal Content */}
+        <div
+          className={`
+            relative bg-white rounded-lg shadow-modal w-full ${sizeStyles[size]}
+            max-h-[90vh] overflow-y-auto pointer-events-auto
+            transition-all duration-200
+            ${isVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'}
+          `}
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         {title && (
           <div className="flex items-center justify-between p-6 border-b border-gray-light">
@@ -149,8 +153,9 @@ export const Modal: React.FC<ModalProps> = ({
 
         {/* Body */}
         <div className="p-6">{children}</div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -1,6 +1,114 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
 
+// GET stack
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const supabase = await createClient(request);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Try to get stack by ID first
+    let { data: stack, error: stackError } = await supabase
+      .from('stacks')
+      .select(`
+        id,
+        title,
+        description,
+        slug,
+        cover_image_url,
+        is_public,
+        is_hidden,
+        owner_id,
+        stats,
+        created_at,
+        updated_at,
+        owner:users!stacks_owner_id_fkey (
+          id,
+          username,
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq('id', id)
+      .maybeSingle();
+
+    // If not found by ID, try by slug
+    if (!stack && !stackError) {
+      const { data: stackBySlug, error: slugError } = await supabase
+        .from('stacks')
+        .select(`
+          id,
+          title,
+          description,
+          slug,
+          cover_image_url,
+          is_public,
+          is_hidden,
+          owner_id,
+          stats,
+          created_at,
+          updated_at,
+          owner:users!stacks_owner_id_fkey (
+            id,
+            username,
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('slug', id)
+        .maybeSingle();
+      
+      stack = stackBySlug;
+      stackError = slugError;
+    }
+
+    if (stackError) {
+      console.error('Error fetching stack:', stackError);
+      return NextResponse.json(
+        { error: stackError.message || 'Failed to fetch stack' },
+        { status: 400 }
+      );
+    }
+
+    if (!stack) {
+      return NextResponse.json(
+        { error: 'Stack not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user can view this stack
+    // Public stacks are visible to everyone
+    // Private stacks are only visible to owner
+    if (!stack.is_public && (!user || stack.owner_id !== user.id)) {
+      return NextResponse.json(
+        { error: 'Stack not found' }, // Don't reveal existence of private stacks
+        { status: 404 }
+      );
+    }
+
+    // Hidden stacks are only visible to owner
+    if (stack.is_hidden && (!user || stack.owner_id !== user.id)) {
+      return NextResponse.json(
+        { error: 'Stack not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ stack });
+  } catch (error: any) {
+    console.error('Unexpected error fetching stack:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE stack
 export async function DELETE(
   request: NextRequest,

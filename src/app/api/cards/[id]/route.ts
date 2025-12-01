@@ -1,6 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
 
+// GET card by ID
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const supabase = await createClient(request);
+
+    // Fetch card
+    const { data: card, error: cardError } = await supabase
+      .from('cards')
+      .select(`
+        id,
+        canonical_url,
+        title,
+        description,
+        thumbnail_url,
+        domain,
+        created_by,
+        created_at,
+        last_checked_at,
+        status,
+        metadata,
+        creator:users!cards_created_by_fkey (
+          id,
+          username,
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (cardError) {
+      console.error('Error fetching card:', cardError);
+      return NextResponse.json(
+        { error: cardError.message || 'Failed to fetch card' },
+        { status: 400 }
+      );
+    }
+
+    if (!card) {
+      return NextResponse.json(
+        { error: 'Card not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ card });
+  } catch (error: any) {
+    console.error('Unexpected error fetching card:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE card from database
 export async function DELETE(
   request: NextRequest,

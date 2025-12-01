@@ -48,6 +48,14 @@ export const rateLimiters = {
     analytics: true,
     prefix: '@ratelimit:reports',
   }),
+
+  // Stacks: 50/day per user (reasonable limit)
+  stacks: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(50, '1 d'),
+    analytics: true,
+    prefix: '@ratelimit:stacks',
+  }),
 };
 
 /**
