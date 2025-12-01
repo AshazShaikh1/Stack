@@ -41,7 +41,7 @@ export default function ResetPasswordPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cloud px-4">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-card shadow-card p-8 text-center">
+          <div className="bg-white rounded-lg shadow-card p-8 text-center">
             <h1 className="text-h1 font-bold text-jet-dark mb-2">Check your email</h1>
             <p className="text-body text-gray-muted mb-6">
               We&apos;ve sent a password reset link to {email}
@@ -58,7 +58,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-cloud px-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-card shadow-card p-8">
+        <div className="bg-white rounded-lg shadow-card p-8">
           <h1 className="text-h1 font-bold text-jet-dark mb-2">Reset password</h1>
           <p className="text-body text-gray-muted mb-6">
             Enter your email address and we&apos;ll send you a link to reset your password

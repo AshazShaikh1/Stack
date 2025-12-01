@@ -266,7 +266,7 @@ export function CreateStackModal({ isOpen, onClose }: CreateStackModalProps) {
             type="file"
             accept="image/*"
             onChange={handleImageChange}
-            className="w-full text-small text-gray-muted file:mr-4 file:py-2 file:px-4 file:rounded-button file:border-0 file:text-small file:font-medium file:bg-jet file:text-white hover:file:opacity-90 cursor-pointer"
+            className="w-full text-small text-gray-muted file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-small file:font-medium file:bg-jet file:text-white hover:file:opacity-90 cursor-pointer"
             disabled={isLoading}
           />
         </div>

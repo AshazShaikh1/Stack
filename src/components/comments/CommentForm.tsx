@@ -31,7 +31,7 @@ export function CommentForm({
 
   if (!user) {
     return (
-      <div className="p-4 bg-gray-light rounded-card text-center text-gray-muted">
+      <div className="p-4 bg-gray-light rounded-lg text-center text-gray-muted">
         <Link href="/login" className="text-jet hover:underline">
           Sign in
         </Link> to comment
@@ -78,7 +78,7 @@ export function CommentForm({
         }}
         placeholder={placeholder}
         rows={3}
-        className="w-full px-4 py-3 border border-gray-light rounded-card focus:outline-none focus:ring-2 focus:ring-jet focus:border-transparent resize-none text-body"
+        className="w-full px-4 py-3 border border-gray-light rounded-lg focus:outline-none focus:ring-2 focus:ring-jet focus:border-transparent resize-none text-body"
         maxLength={5000}
       />
       

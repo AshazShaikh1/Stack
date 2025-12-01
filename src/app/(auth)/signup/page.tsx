@@ -85,7 +85,7 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-cloud px-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-card shadow-card p-8">
+        <div className="bg-white rounded-lg shadow-card p-8">
           <h1 className="text-h1 font-bold text-jet-dark mb-2">Create account</h1>
           <p className="text-body text-gray-muted mb-6">
             Sign up to start curating resources

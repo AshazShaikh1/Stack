@@ -33,7 +33,7 @@ export function FeedGrid({ stacks, isLoading }: FeedGridProps) {
         {[...Array(12)].map((_, i) => (
           <div
             key={i}
-            className="bg-white rounded-card border border-gray-light animate-pulse"
+            className="bg-white rounded-lg border border-gray-light animate-pulse"
           >
             <div className="w-full h-48 bg-gray-light rounded-t-card" />
             <div className="p-4 space-y-3">

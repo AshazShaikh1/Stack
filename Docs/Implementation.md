@@ -162,10 +162,10 @@
 - [ ] ~~Implement Notifications system~~ (REMOVED)
 - [ ] ~~Build notification bell component~~ (REMOVED)
 - [x] Implement Follow system (follow/unfollow stackers, follower counts, real-time updates)
-- [ ] Create Monetization features (Promoted Stacks, Featured Stackers, Paid hidden Stacks, Reserve username)
-- [ ] Integrate Stripe Checkout for payments
-- [ ] Build Stripe webhook handler for payment processing
-- [ ] Implement link health checker worker (periodic checks, broken link notifications)
+- [x] Create Monetization features (Promoted Stacks, Featured Stackers, Paid hidden Stacks, Reserve username)
+- [x] Integrate Stripe Checkout for payments
+- [x] Build Stripe webhook handler for payment processing
+- [x] Implement link health checker worker (periodic checks, broken link notifications)
 - [ ] Create fraud detection worker (vote spikes, clone spikes, extension anomalies)
 - [ ] Implement comment moderation (OpenAI/Perspective API integration, auto-hide toxic comments)
 - [ ] Build reports system (user reporting, admin review queue)

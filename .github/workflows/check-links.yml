@@ -1,0 +1,22 @@
+name: Check Links Health
+
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Links
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_API_KEY: ${{ secrets.WORKER_API_KEY }}
+        run: |
+          curl -X POST \
+            -H "x-api-key: $WORKER_API_KEY" \
+            "$APP_URL/api/workers/check-links?limit=100" \
+            -w "\nHTTP Status: %{http_code}\n"
+

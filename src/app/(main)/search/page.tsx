@@ -184,7 +184,7 @@ async function SearchResults({ query, type }: { query: string; type: string }) {
                 href={`/profile/${user.username}`}
                 className="block"
               >
-                <div className="p-4 bg-white rounded-card border border-gray-light hover:border-jet transition-colors">
+                <div className="p-4 bg-white rounded-lg border border-gray-light hover:border-jet transition-colors">
                   <div className="flex items-center gap-3">
                     {user.avatar_url ? (
                       <Image
@@ -250,7 +250,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <div className="flex gap-2">
           <Link
             href={`/search?q=${encodeURIComponent(query)}&type=all`}
-            className={`px-4 py-2 rounded-button text-small font-medium transition-colors ${
+            className={`px-4 py-2 rounded-md text-small font-medium transition-colors ${
               type === 'all'
                 ? 'bg-jet text-white'
                 : 'bg-gray-light text-jet-dark hover:bg-jet/10'
@@ -260,7 +260,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           </Link>
           <Link
             href={`/search?q=${encodeURIComponent(query)}&type=stacks`}
-            className={`px-4 py-2 rounded-button text-small font-medium transition-colors ${
+            className={`px-4 py-2 rounded-md text-small font-medium transition-colors ${
               type === 'stacks'
                 ? 'bg-jet text-white'
                 : 'bg-gray-light text-jet-dark hover:bg-jet/10'
@@ -270,7 +270,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           </Link>
           <Link
             href={`/search?q=${encodeURIComponent(query)}&type=cards`}
-            className={`px-4 py-2 rounded-button text-small font-medium transition-colors ${
+            className={`px-4 py-2 rounded-md text-small font-medium transition-colors ${
               type === 'cards'
                 ? 'bg-jet text-white'
                 : 'bg-gray-light text-jet-dark hover:bg-jet/10'
@@ -280,7 +280,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           </Link>
           <Link
             href={`/search?q=${encodeURIComponent(query)}&type=users`}
-            className={`px-4 py-2 rounded-button text-small font-medium transition-colors ${
+            className={`px-4 py-2 rounded-md text-small font-medium transition-colors ${
               type === 'users'
                 ? 'bg-jet text-white'
                 : 'bg-gray-light text-jet-dark hover:bg-jet/10'

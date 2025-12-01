@@ -45,10 +45,10 @@ const config: Config = {
         card: "16px",
       },
       borderRadius: {
-        card: "12px",
-        button: "8px",
-        input: "8px",
-        modal: "16px",
+        card: "8px", // Changed from 12px to 8px (rounded-lg)
+        button: "6px", // Changed from 8px to 6px (rounded-md)
+        input: "6px", // Changed from 8px to 6px (rounded-md)
+        modal: "12px", // Changed from 16px to 12px (rounded-lg)
       },
       boxShadow: {
         card: "0 4px 12px rgba(0,0,0,0.1)",

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { CreateStackModal } from '@/components/stack/CreateStackModal';
+import { SearchIcon } from '@/components/ui/Icons';
 
 function CreateButton() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,8 +90,8 @@ export function Header() {
           {/* Search Bar */}
           <div className="flex-1 max-w-2xl">
             <form action="/search" method="get" className="w-full">
-              <div className="flex items-center gap-3 px-4 py-2 bg-gray-light rounded-full hover:bg-gray-light/80 transition-colors">
-                <span className="text-gray-muted">🔍</span>
+              <div className="flex items-center gap-3 px-4 py-2 bg-gray-light rounded-lg hover:bg-gray-light/80 transition-colors">
+                <SearchIcon size={18} className="text-gray-muted" />
                 <input
                   type="text"
                   name="q"
@@ -104,7 +105,7 @@ export function Header() {
           {/* Right Actions */}
           <div className="flex items-center gap-4">
             {isLoading ? (
-              <div className="w-20 h-10 bg-gray-light animate-pulse rounded-button" />
+              <div className="w-20 h-10 bg-gray-light animate-pulse rounded-md" />
             ) : user ? (
               <>
                 <CreateButton />

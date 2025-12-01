@@ -70,7 +70,7 @@ export const Modal: React.FC<ModalProps> = ({
       {/* Modal Content */}
       <div
         className={`
-          relative bg-white rounded-modal shadow-modal w-full ${sizeStyles[size]}
+          relative bg-white rounded-lg shadow-modal w-full ${sizeStyles[size]}
           max-h-[90vh] overflow-y-auto
         `}
         onClick={(e) => e.stopPropagation()}

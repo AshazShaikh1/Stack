@@ -113,7 +113,7 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
     <div className="mb-8">
       {/* Cover Image */}
       {stack.cover_image_url ? (
-        <div className="relative w-full h-96 rounded-card overflow-hidden mb-6">
+        <div className="relative w-full h-96 rounded-lg overflow-hidden mb-6">
           <Image
             src={stack.cover_image_url}
             alt={stack.title}
@@ -124,7 +124,7 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
           />
         </div>
       ) : (
-        <div className="w-full h-64 bg-gradient-to-br from-jet/10 to-gray-light rounded-card mb-6 flex items-center justify-center">
+        <div className="w-full h-64 bg-gradient-to-br from-jet/10 to-gray-light rounded-lg mb-6 flex items-center justify-center">
           <div className="text-6xl">📚</div>
         </div>
       )}
