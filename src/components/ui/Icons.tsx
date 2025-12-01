@@ -135,3 +135,31 @@ export const MyStacksIcon: React.FC<IconProps> = ({ className = '', size = 20 })
   </svg>
 );
 
+export const NotificationIcon: React.FC<IconProps> = ({ className = '', size = 20 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 20 20"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M10 2C7.2 2 5 4.2 5 7V11L3 13V14H17V13L15 11V7C15 4.2 12.8 2 10 2Z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M7 14V15C7 16.1 7.9 17 9 17H11C12.1 17 13 16.1 13 15V14"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </svg>
+);
+

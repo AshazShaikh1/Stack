@@ -79,8 +79,40 @@ export function useComments({ targetType, targetId }: UseCommentsOptions) {
         throw new Error(data.error || 'Failed to add comment');
       }
 
-      // Refetch comments to get the new one
-      await fetchComments();
+      // Optimistically add the new comment to the list
+      if (data.comment) {
+        const newComment = data.comment;
+        if (parentId) {
+          // Add as reply to parent comment
+          const addReplyToComment = (comments: Comment[]): Comment[] => {
+            return comments.map(comment => {
+              if (comment.id === parentId) {
+                return {
+                  ...comment,
+                  replies: [...(comment.replies || []), newComment],
+                };
+              }
+              if (comment.replies && comment.replies.length > 0) {
+                return {
+                  ...comment,
+                  replies: addReplyToComment(comment.replies),
+                };
+              }
+              return comment;
+            });
+          };
+          setComments(addReplyToComment(comments));
+        } else {
+          // Add as top-level comment
+          setComments([...comments, newComment]);
+        }
+      }
+
+      // Refetch comments to ensure consistency (but don't show loading)
+      fetchComments().catch(err => {
+        console.error('Error refreshing comments:', err);
+      });
+      
       return data.comment;
     } catch (err: any) {
       setError(err.message);
@@ -94,6 +126,7 @@ export function useComments({ targetType, targetId }: UseCommentsOptions) {
     error,
     addComment,
     refetch: fetchComments,
+    refreshComments: fetchComments,
   };
 }
 

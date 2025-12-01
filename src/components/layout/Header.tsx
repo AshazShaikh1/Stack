@@ -2,62 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { CreateStackModal } from '@/components/stack/CreateStackModal';
 import { SearchIcon } from '@/components/ui/Icons';
 import { LoginModal } from '@/components/auth/LoginModal';
 import { SignupModal } from '@/components/auth/SignupModal';
-
-function CreateButton() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  return (
-    <>
-      <Button variant="primary" size="sm" onClick={() => setIsModalOpen(true)}>
-        Create
-      </Button>
-      <CreateStackModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-    </>
-  );
-}
-
-function ProfileButton({ user }: { user: any }) {
-  const [username, setUsername] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchUsername = async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from('users')
-        .select('username')
-        .eq('id', user.id)
-        .single();
-      if (data) setUsername(data.username);
-    };
-    if (user) fetchUsername();
-  }, [user]);
-
-  if (!username) {
-    return (
-      <div className="w-10 h-10 rounded-full bg-gray-light animate-pulse" />
-    );
-  }
-
-  return (
-    <Link
-      href={`/profile/${username}`}
-      className="w-10 h-10 rounded-full bg-jet/20 flex items-center justify-center text-jet font-semibold hover:bg-jet/30 transition-colors"
-      aria-label="Profile"
-    >
-      {user.email?.charAt(0).toUpperCase() || 'U'}
-    </Link>
-  );
-}
+import { AccountDropdown } from './AccountDropdown';
+import { NotificationDropdown } from './NotificationDropdown';
 
 export function Header() {
-  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -79,13 +32,6 @@ export function Header() {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    // Redirect to home page which will show landing page for signed out users
-    window.location.href = '/';
-  };
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-light">
@@ -112,8 +58,8 @@ export function Header() {
               <div className="w-20 h-10 bg-gray-light animate-pulse rounded-md" />
             ) : user ? (
               <>
-                <CreateButton />
-                <ProfileButton user={user} />
+                <NotificationDropdown user={user} />
+                <AccountDropdown user={user} />
               </>
             ) : (
               <>

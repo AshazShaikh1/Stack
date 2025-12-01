@@ -7,10 +7,11 @@ import { CommentForm } from './CommentForm';
 interface CommentsSectionProps {
   targetType: 'stack' | 'card';
   targetId: string;
+  stackOwnerId?: string;
 }
 
-export function CommentsSection({ targetType, targetId }: CommentsSectionProps) {
-  const { comments, isLoading, error, addComment } = useComments({
+export function CommentsSection({ targetType, targetId, stackOwnerId }: CommentsSectionProps) {
+  const { comments, isLoading, error, addComment, refreshComments } = useComments({
     targetType,
     targetId,
   });
@@ -52,6 +53,8 @@ export function CommentsSection({ targetType, targetId }: CommentsSectionProps) 
               targetType={targetType}
               targetId={targetId}
               depth={0}
+              stackOwnerId={stackOwnerId}
+              onCommentUpdate={refreshComments}
             />
           ))
         )}

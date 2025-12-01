@@ -30,6 +30,8 @@ export function CreateCardModal({ isOpen, onClose }: CreateCardModalProps) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const [isDraggingDocs, setIsDraggingDocs] = useState(false);
 
   // Fetch user's stacks when modal opens
   useEffect(() => {
@@ -64,24 +66,80 @@ export function CreateCardModal({ isOpen, onClose }: CreateCardModalProps) {
   const handleCardTypeSelect = (type: CardType) => {
     setCardType(type);
     setStep('details');
+    setIsDraggingImage(false);
+    setIsDraggingDocs(false);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  const handleFileSelect = (file: File, type: 'image' | 'docs') => {
+    if (type === 'image') {
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
       setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    } else {
+      const allowedTypes = ['.pdf', '.doc', '.docx', '.txt'];
+      const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (!allowedTypes.includes(fileExt)) {
+        setError('Please select a valid document file (PDF, DOC, DOCX, or TXT)');
+        return;
+      }
+      setDocsFile(file);
+    }
+    setError('');
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(file, 'image');
     }
   };
 
   const handleDocsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setDocsFile(file);
+      handleFileSelect(file, 'docs');
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent, type: 'image' | 'docs') => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (type === 'image') {
+      setIsDraggingImage(true);
+    } else {
+      setIsDraggingDocs(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent, type: 'image' | 'docs') => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (type === 'image') {
+      setIsDraggingImage(false);
+    } else {
+      setIsDraggingDocs(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, type: 'image' | 'docs') => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (type === 'image') {
+      setIsDraggingImage(false);
+    } else {
+      setIsDraggingDocs(false);
+    }
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFileSelect(file, type);
     }
   };
 
@@ -238,6 +296,8 @@ export function CreateCardModal({ isOpen, onClose }: CreateCardModalProps) {
     setSelectedStackId('');
     setError('');
     setIsLoading(false);
+    setIsDraggingImage(false);
+    setIsDraggingDocs(false);
     onClose();
   };
 
@@ -346,25 +406,68 @@ export function CreateCardModal({ isOpen, onClose }: CreateCardModalProps) {
                 <label className="block text-body font-medium text-jet-dark mb-2">
                   Image
                 </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                  id="image-upload"
-                  disabled={isLoading}
-                />
-                <label
-                  htmlFor="image-upload"
-                  className="block w-full px-4 py-3 border border-gray-light rounded-lg text-body text-jet-dark hover:bg-gray-light cursor-pointer transition-colors text-center"
+                <div
+                  onDragOver={(e) => handleDragOver(e, 'image')}
+                  onDragLeave={(e) => handleDragLeave(e, 'image')}
+                  onDrop={(e) => handleDrop(e, 'image')}
+                  className={`relative w-full border-2 border-dashed rounded-lg transition-all ${
+                    isDraggingImage
+                      ? 'border-jet bg-jet/5'
+                      : 'border-gray-light hover:border-jet/50'
+                  }`}
                 >
-                  {imageFile ? 'Change image' : 'Upload image'}
-                </label>
-                {imagePreview && (
-                  <div className="mt-4 relative w-full h-48 rounded-lg overflow-hidden bg-gray-light">
-                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  </div>
-                )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    id="image-upload"
+                    disabled={isLoading}
+                  />
+                  <label
+                    htmlFor="image-upload"
+                    className="flex flex-col items-center justify-center px-4 py-8 cursor-pointer"
+                  >
+                    {imagePreview ? (
+                      <div className="w-full">
+                        <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-light mb-3">
+                          <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                        <p className="text-center text-body text-jet-dark">
+                          {imageFile?.name}
+                        </p>
+                        <p className="text-center text-small text-gray-muted mt-1">
+                          Click or drag to change image
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-12 h-12 text-gray-muted mb-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                          />
+                        </svg>
+                        <p className="text-body text-jet-dark font-medium mb-1">
+                          Drag and drop an image here
+                        </p>
+                        <p className="text-small text-gray-muted mb-3">
+                          or click to browse
+                        </p>
+                        <p className="text-xs text-gray-muted">
+                          Files are saved to: Supabase Storage → thumbnails bucket → cards/{'{user_id}'}/
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
               </div>
             )}
 
@@ -374,20 +477,81 @@ export function CreateCardModal({ isOpen, onClose }: CreateCardModalProps) {
                 <label className="block text-body font-medium text-jet-dark mb-2">
                   Document
                 </label>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt"
-                  onChange={handleDocsChange}
-                  className="hidden"
-                  id="docs-upload"
-                  disabled={isLoading}
-                />
-                <label
-                  htmlFor="docs-upload"
-                  className="block w-full px-4 py-3 border border-gray-light rounded-lg text-body text-jet-dark hover:bg-gray-light cursor-pointer transition-colors text-center"
+                <div
+                  onDragOver={(e) => handleDragOver(e, 'docs')}
+                  onDragLeave={(e) => handleDragLeave(e, 'docs')}
+                  onDrop={(e) => handleDrop(e, 'docs')}
+                  className={`relative w-full border-2 border-dashed rounded-lg transition-all ${
+                    isDraggingDocs
+                      ? 'border-jet bg-jet/5'
+                      : 'border-gray-light hover:border-jet/50'
+                  }`}
                 >
-                  {docsFile ? docsFile.name : 'Upload document'}
-                </label>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt"
+                    onChange={handleDocsChange}
+                    className="hidden"
+                    id="docs-upload"
+                    disabled={isLoading}
+                  />
+                  <label
+                    htmlFor="docs-upload"
+                    className="flex flex-col items-center justify-center px-4 py-8 cursor-pointer"
+                  >
+                    {docsFile ? (
+                      <>
+                        <svg
+                          className="w-12 h-12 text-jet mb-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        <p className="text-body text-jet-dark font-medium mb-1">
+                          {docsFile.name}
+                        </p>
+                        <p className="text-small text-gray-muted">
+                          Click or drag to change document
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-12 h-12 text-gray-muted mb-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                          />
+                        </svg>
+                        <p className="text-body text-jet-dark font-medium mb-1">
+                          Drag and drop a document here
+                        </p>
+                        <p className="text-small text-gray-muted mb-3">
+                          or click to browse
+                        </p>
+                        <p className="text-xs text-gray-muted mb-2">
+                          Supported: PDF, DOC, DOCX, TXT
+                        </p>
+                        <p className="text-xs text-gray-muted">
+                          Files are saved to: Supabase Storage → thumbnails bucket → docs/{'{user_id}'}/
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
               </div>
             )}
 

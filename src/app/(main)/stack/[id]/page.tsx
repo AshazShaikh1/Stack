@@ -142,7 +142,7 @@ export default async function StackPage({ params }: StackPageProps) {
   // Ensure owner is a single object, not an array
   const owner = Array.isArray(stack.owner) ? stack.owner[0] : stack.owner;
 
-  // Get cards in this stack
+  // Get cards in this stack with ownership info
   const { data: stackCards, error: cardsError } = await supabase
     .from('stack_cards')
     .select(`
@@ -153,7 +153,8 @@ export default async function StackPage({ params }: StackPageProps) {
         thumbnail_url,
         canonical_url,
         domain
-      )
+      ),
+      added_by
     `)
     .eq('stack_id', stack.id)
     .order('added_at', { ascending: false });
@@ -162,7 +163,10 @@ export default async function StackPage({ params }: StackPageProps) {
     console.error('Error fetching cards:', cardsError);
   }
 
-  const cards = stackCards?.map((sc: any) => sc.card).filter(Boolean) || [];
+  const cards = stackCards?.map((sc: any) => ({
+    ...sc.card,
+    addedBy: sc.added_by,
+  })).filter((c: any) => c.id) || [];
 
   return (
     <div className="container mx-auto px-page py-section">
@@ -171,6 +175,8 @@ export default async function StackPage({ params }: StackPageProps) {
           ...stack,
           owner: owner,
           tags: transformedTags,
+          is_public: stack.is_public,
+          is_hidden: stack.is_hidden,
         }}
         isOwner={isOwner}
       />
@@ -179,7 +185,13 @@ export default async function StackPage({ params }: StackPageProps) {
       {cards.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {cards.map((card: any) => (
-            <CardPreview key={card.id} card={card} />
+            <CardPreview 
+              key={card.id} 
+              card={card} 
+              stackId={stack.id}
+              stackOwnerId={stack.owner_id}
+              addedBy={card.addedBy}
+            />
           ))}
         </div>
       ) : (
@@ -201,7 +213,7 @@ export default async function StackPage({ params }: StackPageProps) {
       )}
 
       {/* Comments Section */}
-      <CommentsSection targetType="stack" targetId={stack.id} />
+      <CommentsSection targetType="stack" targetId={stack.id} stackOwnerId={stack.owner_id} />
     </div>
   );
   } catch (error) {

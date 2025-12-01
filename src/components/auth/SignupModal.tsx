@@ -24,16 +24,49 @@ export function SignupModal({ isOpen, onClose, onSwitchToLogin }: SignupModalPro
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFileSelect = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
+    }
+    setProfilePicture(file);
+    setError('');
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProfilePicturePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setProfilePicture(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePicturePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      handleFileSelect(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFileSelect(file);
     }
   };
 
@@ -306,36 +339,67 @@ export function SignupModal({ isOpen, onClose, onSwitchToLogin }: SignupModalPro
               <label className="block text-body font-medium text-jet-dark mb-2">
                 Profile Picture
               </label>
-              <div className="flex items-center gap-4">
-                <div className="relative w-20 h-20 rounded-lg bg-gray-light flex items-center justify-center overflow-hidden flex-shrink-0">
-                  {profilePicturePreview ? (
-                    <Image
-                      src={profilePicturePreview}
-                      alt="Profile preview"
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg bg-jet/20 flex items-center justify-center text-2xl font-bold text-jet">
-                      {displayName.charAt(0).toUpperCase() || 'U'}
-                    </div>
-                  )}
-                </div>
-                <label className="flex-1 min-w-0">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfilePictureChange}
-                    className="hidden"
-                    disabled={isLoading}
-                  />
-                  <div className="px-4 py-3 border border-gray-light rounded-lg text-body text-jet-dark hover:bg-gray-light cursor-pointer transition-colors text-center">
-                    {profilePicture ? 'Change photo' : 'Upload photo'}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`relative w-full border-2 border-dashed rounded-lg transition-all ${
+                  isDragging
+                    ? 'border-jet bg-jet/5'
+                    : 'border-gray-light hover:border-jet/50'
+                }`}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePictureChange}
+                  className="hidden"
+                  id="profile-picture-upload"
+                  disabled={isLoading}
+                />
+                <label
+                  htmlFor="profile-picture-upload"
+                  className="flex items-center gap-4 px-4 py-4 cursor-pointer"
+                >
+                  <div className="relative w-20 h-20 rounded-lg bg-gray-light flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {profilePicturePreview ? (
+                      <Image
+                        src={profilePicturePreview}
+                        alt="Profile preview"
+                        fill
+                        className="object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-jet/20 flex items-center justify-center text-2xl font-bold text-jet">
+                        {displayName.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    {profilePicture ? (
+                      <>
+                        <p className="text-body text-jet-dark font-medium mb-1">
+                          {profilePicture.name}
+                        </p>
+                        <p className="text-small text-gray-muted">
+                          Click or drag to change photo
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-body text-jet-dark font-medium mb-1">
+                          Drag and drop a photo here
+                        </p>
+                        <p className="text-small text-gray-muted">
+                          or click to browse
+                        </p>
+                      </>
+                    )}
                   </div>
                 </label>
               </div>
               <p className="mt-1 text-small text-gray-muted">
-                Optional - You can add this later
+                Optional - You can add this later. Files are saved to: Supabase Storage → avatars bucket → {`{user_id}`}/
               </p>
             </div>
 

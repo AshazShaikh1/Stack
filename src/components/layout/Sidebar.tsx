@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
-import { HomeIcon, FeedIcon, ExploreIcon, CreateIcon, ProfileIcon, MyStacksIcon } from '@/components/ui/Icons';
+import { HomeIcon, FeedIcon, ExploreIcon, CreateIcon, MyStacksIcon } from '@/components/ui/Icons';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { CreateOptionsModal } from '@/components/create/CreateOptionsModal';
 
@@ -98,21 +98,6 @@ export function Sidebar() {
         isOpen={isCreateModalOpen} 
         onClose={() => setIsCreateModalOpen(false)} 
       />
-
-      {/* Bottom Actions */}
-      <div className="flex flex-col gap-4">
-        {user && (
-          <Tooltip text="Profile" position="right">
-            <Link
-              href={`/profile/${user.username || user.id}`}
-              className="w-12 h-12 rounded-lg flex items-center justify-center text-gray-muted hover:bg-gray-light hover:text-jet transition-all duration-200"
-              aria-label="Profile"
-            >
-              <ProfileIcon size={20} />
-            </Link>
-          </Tooltip>
-        )}
-      </div>
     </aside>
   );
 }

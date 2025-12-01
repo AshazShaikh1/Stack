@@ -7,80 +7,56 @@ import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
-interface CreateStackModalProps {
+interface EditStackModalProps {
   isOpen: boolean;
   onClose: () => void;
+  stack: {
+    id: string;
+    title: string;
+    description?: string;
+    cover_image_url?: string;
+    is_public: boolean;
+    is_hidden: boolean;
+    tags?: Array<{ id: string; name: string }>;
+  };
 }
 
-export function CreateStackModal({ isOpen, onClose }: CreateStackModalProps) {
+export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) {
   const router = useRouter();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [tags, setTags] = useState('');
-  const [visibility, setVisibility] = useState<'public' | 'private' | 'unlisted'>('public');
+  const [title, setTitle] = useState(stack.title);
+  const [description, setDescription] = useState(stack.description || '');
+  const [tags, setTags] = useState(stack.tags?.map(t => t.name).join(', ') || '');
+  const [visibility, setVisibility] = useState<'public' | 'private' | 'unlisted'>(
+    stack.is_hidden ? 'unlisted' : stack.is_public ? 'public' : 'private'
+  );
   const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(stack.cover_image_url || null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
 
-  // Reset form when modal closes
+  // Reset form when modal opens with new stack data
   useEffect(() => {
-    if (!isOpen) {
-      // Reset all state when modal is closed
-      setTitle('');
-      setDescription('');
-      setTags('');
-      setVisibility('public');
+    if (isOpen) {
+      setTitle(stack.title);
+      setDescription(stack.description || '');
+      setTags(stack.tags?.map(t => t.name).join(', ') || '');
+      setVisibility(stack.is_hidden ? 'unlisted' : stack.is_public ? 'public' : 'private');
       setCoverImage(null);
-      setCoverImagePreview(null);
+      setCoverImagePreview(stack.cover_image_url || null);
       setError('');
       setIsLoading(false);
-      setIsDragging(false);
     }
-  }, [isOpen]);
-
-  const handleFileSelect = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file');
-      return;
-    }
-    setCoverImage(file);
-    setError('');
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setCoverImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
+  }, [isOpen, stack]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      handleFileSelect(file);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileSelect(file);
+      setCoverImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -94,7 +70,7 @@ export function CreateStackModal({ isOpen, onClose }: CreateStackModalProps) {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        setError('You must be logged in to create a stack');
+        setError('You must be logged in to edit a stack');
         setIsLoading(false);
         return;
       }
@@ -106,7 +82,7 @@ export function CreateStackModal({ isOpen, onClose }: CreateStackModalProps) {
         .replace(/(^-|-$)/g, '');
 
       // Upload cover image if provided
-      let coverImageUrl = null;
+      let coverImageUrl = stack.cover_image_url;
       if (coverImage) {
         const fileExt = coverImage.name.split('.').pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
@@ -126,29 +102,35 @@ export function CreateStackModal({ isOpen, onClose }: CreateStackModalProps) {
         coverImageUrl = publicUrl;
       }
 
-      // Create stack
-      const { data: stack, error: stackError } = await supabase
+      // Update stack
+      const { error: stackError } = await supabase
         .from('stacks')
-        .insert({
+        .update({
           title,
           description: description || null,
           slug,
           is_public: visibility === 'public',
           is_hidden: visibility === 'unlisted',
           cover_image_url: coverImageUrl,
-          owner_id: user.id,
         })
-        .select()
-        .single();
+        .eq('id', stack.id)
+        .eq('owner_id', user.id);
 
       if (stackError) {
-        setError(stackError.message || 'Failed to create stack');
+        setError(stackError.message || 'Failed to update stack');
         setIsLoading(false);
         return;
       }
 
-      // Handle tags
+      // Handle tags - remove old tags and add new ones
       if (tags.trim()) {
+        // Delete existing tags
+        await supabase
+          .from('stack_tags')
+          .delete()
+          .eq('stack_id', stack.id);
+
+        // Add new tags
         const tagNames = tags
           .split(',')
           .map(t => t.trim().toLowerCase())
@@ -179,20 +161,17 @@ export function CreateStackModal({ isOpen, onClose }: CreateStackModalProps) {
             });
           }
         }
+      } else {
+        // Remove all tags if tags field is empty
+        await supabase
+          .from('stack_tags')
+          .delete()
+          .eq('stack_id', stack.id);
       }
 
-      // Reset form state
-      setTitle('');
-      setDescription('');
-      setTags('');
-      setCoverImage(null);
-      setCoverImagePreview(null);
+      // Reset and close
       setIsLoading(false);
-      setError('');
-      
-      // Close modal and navigate
       onClose();
-      router.push(`/stack/${stack.slug || stack.id}`);
       router.refresh();
     } catch (err) {
       setError('An unexpected error occurred');
@@ -200,9 +179,35 @@ export function CreateStackModal({ isOpen, onClose }: CreateStackModalProps) {
     }
   };
 
+  const handleClose = () => {
+    setError('');
+    setIsLoading(false);
+    onClose();
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create Stack" size="md">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Edit Stack" size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Cover Image Preview */}
+        {coverImagePreview && (
+          <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
+            <img
+              src={coverImagePreview}
+              alt="Cover preview"
+              className="w-full h-full object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setCoverImage(null);
+                setCoverImagePreview(null);
+              }}
+              className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         <Input
           type="text"
@@ -222,7 +227,7 @@ export function CreateStackModal({ isOpen, onClose }: CreateStackModalProps) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe what this stack is about..."
-            className="w-full px-4 py-3 rounded-input border border-gray-light text-body text-jet-dark placeholder:text-gray-muted focus:outline-none focus:ring-2 focus:ring-jet focus:border-transparent disabled:bg-gray-light disabled:cursor-not-allowed resize-none"
+            className="w-full px-4 py-3 rounded-lg border border-gray-light text-body text-jet-dark placeholder:text-gray-muted focus:outline-none focus:ring-2 focus:ring-jet focus:border-transparent disabled:bg-gray-light disabled:cursor-not-allowed resize-none"
             rows={4}
             disabled={isLoading}
           />
@@ -295,72 +300,17 @@ export function CreateStackModal({ isOpen, onClose }: CreateStackModalProps) {
           <label className="block text-body font-medium text-jet-dark mb-2">
             Cover Image (optional)
           </label>
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`relative w-full border-2 border-dashed rounded-lg transition-all ${
-              isDragging
-                ? 'border-jet bg-jet/5'
-                : 'border-gray-light hover:border-jet/50'
-            }`}
-          >
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-              id="cover-image-upload"
-              disabled={isLoading}
-            />
-            <label
-              htmlFor="cover-image-upload"
-              className="flex flex-col items-center justify-center px-4 py-8 cursor-pointer"
-            >
-              {coverImagePreview ? (
-                <div className="w-full">
-                  <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-light mb-3">
-                    <img src={coverImagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  </div>
-                  <p className="text-center text-body text-jet-dark">
-                    {coverImage?.name}
-                  </p>
-                  <p className="text-center text-small text-gray-muted mt-1">
-                    Click or drag to change image
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <svg
-                    className="w-12 h-12 text-gray-muted mb-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
-                  <p className="text-body text-jet-dark font-medium mb-1">
-                    Drag and drop an image here
-                  </p>
-                  <p className="text-small text-gray-muted mb-3">
-                    or click to browse
-                  </p>
-                  <p className="text-xs text-gray-muted">
-                    Files are saved to: Supabase Storage → cover-images bucket → {`{user_id}`}/
-                  </p>
-                </>
-              )}
-            </label>
-          </div>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="w-full text-small text-gray-muted file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-small file:font-medium file:bg-jet file:text-white hover:file:opacity-90 cursor-pointer"
+            disabled={isLoading}
+          />
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-input text-small text-red-600">
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-small text-red-600">
             {error}
           </div>
         )}
@@ -369,7 +319,7 @@ export function CreateStackModal({ isOpen, onClose }: CreateStackModalProps) {
           <Button
             type="button"
             variant="outline"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isLoading}
           >
             Cancel
@@ -379,7 +329,7 @@ export function CreateStackModal({ isOpen, onClose }: CreateStackModalProps) {
             variant="primary"
             isLoading={isLoading}
           >
-            Create Stack
+            Save Changes
           </Button>
         </div>
       </form>
