@@ -61,7 +61,7 @@ export function LandingPageButtons() {
   const { openSignup } = useModalContext();
 
   return (
-    <div className="flex gap-4 justify-center">
+    <div className="flex flex-col sm:flex-row gap-4 justify-center">
       <Button 
         variant="primary" 
         size="lg"
@@ -71,7 +71,7 @@ export function LandingPageButtons() {
       </Button>
       <Link href="/explore">
         <Button variant="outline" size="lg">
-          Explore Collections
+          Browse Collections
         </Button>
       </Link>
     </div>
@@ -82,11 +82,11 @@ export function LandingPageCTAButtons() {
   const { openSignup } = useModalContext();
 
   return (
-    <div className="flex gap-4 justify-center">
+    <div className="flex flex-col sm:flex-row gap-4 justify-center">
       <Button 
         variant="outline" 
         size="lg" 
-        className="!bg-transparent border-2 border-white text-white hover:!bg-white hover:text-jet"
+        className="!bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white hover:!bg-white hover:!text-emerald hover:border-white shadow-lg"
         onClick={openSignup}
       >
         Create your account
@@ -95,7 +95,7 @@ export function LandingPageCTAButtons() {
         <Button 
           variant="outline" 
           size="lg" 
-          className="bg-white border-white text-jet hover:bg-gray-light hover:border-gray-light"
+          className="bg-white border-white text-emerald hover:bg-emerald-light hover:border-emerald-light hover:text-white shadow-lg"
         >
           Browse collections
         </Button>

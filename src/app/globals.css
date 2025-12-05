@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 :root {
+  --emerald: #1DB954;
+  --emerald-dark: #1AA34A;
+  --emerald-light: #1ED760;
   --jet: #312F2C;
   --jet-dark: #0A0A0A;
   --cloud: #FAFAFA;

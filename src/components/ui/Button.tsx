@@ -16,18 +16,18 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-0 active:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald focus:ring-offset-2 active:outline-none disabled:opacity-50 disabled:cursor-not-allowed shadow-button hover:shadow-buttonHover';
   
   const variantStyles = {
-    primary: 'bg-jet text-white hover:opacity-90 active:scale-95',
-    secondary: 'bg-transparent text-jet border-2 border-jet hover:bg-jet hover:text-white active:scale-95',
-    outline: 'bg-white text-jet border border-gray-light hover:border-jet hover:bg-gray-light active:scale-95',
+    primary: 'bg-emerald text-white hover:bg-emerald-dark active:scale-[0.98]',
+    secondary: 'bg-transparent text-emerald border-2 border-emerald hover:bg-emerald hover:text-white active:scale-[0.98]',
+    outline: 'bg-white text-jet border border-gray-light hover:border-emerald hover:text-emerald hover:bg-emerald/5 active:scale-[0.98] shadow-none hover:shadow-sm',
   };
   
   const sizeStyles = {
-    sm: 'px-4 py-2 text-sm',
+    sm: 'px-4 py-2.5 text-sm',
     md: 'px-6 py-3 text-body',
-    lg: 'px-8 py-4 text-h2',
+    lg: 'px-8 py-4 text-lg',
   };
 
   return (

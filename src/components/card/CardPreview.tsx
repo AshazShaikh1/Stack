@@ -232,7 +232,7 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
         onMouseLeave={() => setIsHovered(false)}
       >
         <Link href={card.canonical_url} target="_blank" rel="noopener noreferrer">
-          <Card hover={false} className="overflow-hidden h-full flex flex-col bg-white rounded-lg border border-gray-light">
+          <Card hover={false} className="overflow-hidden h-full flex flex-col bg-white rounded-card border border-gray-light shadow-card hover:shadow-cardHover transition-all duration-300">
             {/* Image Section with Overlays - Variable height based on card ID */}
             <div 
               className="relative w-full bg-gray-light overflow-hidden"
@@ -361,11 +361,11 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
                   }}
                   disabled={isSaving}
                   className={`flex items-center gap-1 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md text-xs font-medium text-jet-dark hover:bg-white transition-colors ${
-                    isSaved ? 'text-indigo-600' : ''
+                    isSaved ? 'text-emerald' : ''
                   }`}
                 >
                   <svg 
-                    className={`w-4 h-4 ${isSaved ? 'fill-indigo-600 text-indigo-600' : 'text-jet-dark'}`}
+                    className={`w-4 h-4 ${isSaved ? 'fill-emerald text-emerald' : 'text-jet-dark'}`}
                     fill={isSaved ? 'currentColor' : 'none'}
                     stroke="currentColor" 
                     viewBox="0 0 24 24"
@@ -391,10 +391,10 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
                   <button
                     disabled={isSaving}
                     className={`
-                      px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 shadow-lg
+                      px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 shadow-button hover:shadow-buttonHover
                       ${isSaved 
-                        ? 'bg-jet text-white hover:bg-jet/90' 
-                        : 'bg-red-500 text-white hover:bg-red-600'
+                        ? 'bg-emerald text-white hover:bg-emerald-dark' 
+                        : 'bg-emerald text-white hover:bg-emerald-dark'
                       }
                       ${isAnimating ? 'animate-pulse scale-110' : ''}
                     `}

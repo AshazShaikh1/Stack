@@ -141,7 +141,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
         onMouseLeave={() => setIsHovered(false)}
       >
         <Link href={`/collection/${collection.id}`}>
-          <Card hover={false} className="overflow-hidden h-full flex flex-col bg-white rounded-lg border-2 border-indigo-100 hover:border-indigo-300 transition-all duration-200">
+          <Card hover={false} className="overflow-hidden h-full flex flex-col bg-white rounded-card border border-gray-light shadow-card hover:shadow-cardHover transition-all duration-300">
             {/* Image Section with Overlays - Variable height */}
             <div 
               className="relative w-full bg-gray-light overflow-hidden"
@@ -159,14 +159,14 @@ export function CollectionCard({ collection }: CollectionCardProps) {
                   priority={false}
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+                <div className="w-full h-full bg-gradient-to-br from-emerald/10 via-emerald/5 to-cloud flex items-center justify-center">
                   <div className="text-5xl opacity-50">📚</div>
                 </div>
               )}
 
               {/* Top Left - Collection Badge (distinctive from cards) */}
               <div className="absolute top-3 left-3 z-20">
-                <span className="px-2 py-1 bg-indigo-500/90 backdrop-blur-sm rounded-md text-xs font-semibold text-white">
+                <span className="px-2 py-1 bg-emerald/90 backdrop-blur-sm rounded-md text-xs font-semibold text-white shadow-sm">
                   Collection
                 </span>
               </div>
@@ -242,7 +242,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
                   className="flex items-center gap-1 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md text-xs font-medium text-jet-dark hover:bg-white transition-colors"
                 >
                   <svg 
-                    className={`w-4 h-4 ${voted ? 'fill-indigo-500 text-indigo-500' : 'text-jet-dark'}`} 
+                    className={`w-4 h-4 ${voted ? 'fill-emerald text-emerald' : 'text-jet-dark'}`} 
                     fill={voted ? 'currentColor' : 'none'} 
                     stroke="currentColor" 
                     viewBox="0 0 24 24"
@@ -259,7 +259,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
                 </div>
               </div>
 
-              {/* Bottom Right - Save Button (prominent, shown on hover) - Indigo color for collections */}
+              {/* Bottom Right - Save Button (prominent, shown on hover) - Emerald color for collections */}
               {user && !isOwner && (
                 <div 
                   className={`absolute bottom-3 right-3 z-20 transition-opacity duration-200 ${
@@ -274,10 +274,10 @@ export function CollectionCard({ collection }: CollectionCardProps) {
                   <button
                     disabled={isSaving}
                     className={`
-                      px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 shadow-lg
+                      px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 shadow-button hover:shadow-buttonHover
                       ${isSaved 
-                        ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                        : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                        ? 'bg-emerald-dark text-white hover:bg-emerald' 
+                        : 'bg-emerald text-white hover:bg-emerald-dark'
                       }
                       ${isAnimating ? 'animate-pulse scale-110' : ''}
                     `}
@@ -306,7 +306,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
                     className="rounded-full"
                   />
                 ) : (
-                  <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-semibold text-indigo-600">
+                  <div className="w-5 h-5 rounded-full bg-emerald/20 flex items-center justify-center text-xs font-semibold text-emerald">
                     {displayName.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -323,7 +323,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
               {/* Tags - Show first tag if available */}
               {collection.tags && collection.tags.length > 0 && (
                 <div className="mt-auto pt-2">
-                  <span className="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-md">
+                  <span className="inline-block px-2 py-1 bg-emerald/10 text-emerald text-xs font-medium rounded-md">
                     {collection.tags[0].name}
                   </span>
                 </div>

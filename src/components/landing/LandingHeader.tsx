@@ -16,20 +16,21 @@ export function LandingHeader() {
         <div className="container mx-auto px-page">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-jet rounded-lg flex items-center justify-center text-white font-bold text-lg">
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="w-10 h-10 bg-emerald rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-button group-hover:scale-105 transition-transform duration-200">
                 S
               </div>
-              <span className="text-h2 font-bold text-jet-dark">Stack</span>
+              <span className="text-h2 font-bold text-jet-dark group-hover:text-emerald transition-colors duration-200">Stacq</span>
             </Link>
 
             {/* Navigation */}
             <nav className="flex items-center gap-6">
               <Link 
                 href="/explore" 
-                className="text-body text-gray-muted hover:text-jet-dark transition-colors"
+                className="text-body text-gray-muted hover:text-emerald transition-colors duration-200 relative group"
               >
                 Explore
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald group-hover:w-full transition-all duration-200"></span>
               </Link>
               <Button 
                 variant="outline" 

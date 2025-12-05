@@ -9,6 +9,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        emerald: {
+          DEFAULT: "#1DB954",
+          dark: "#1AA34A",
+          light: "#1ED760",
+        },
         jet: {
           DEFAULT: "#312F2C",
           dark: "#0A0A0A",
@@ -34,10 +39,10 @@ const config: Config = {
         ],
       },
       fontSize: {
-        h1: ["32px", { lineHeight: "1.2", fontWeight: "600" }],
-        h2: ["24px", { lineHeight: "1.3", fontWeight: "600" }],
-        body: ["16px", { lineHeight: "1.5", fontWeight: "400" }],
-        small: ["14px", { lineHeight: "1.4", fontWeight: "400" }],
+        h1: ["40px", { lineHeight: "1.2", fontWeight: "700", letterSpacing: "-0.02em" }],
+        h2: ["28px", { lineHeight: "1.3", fontWeight: "600", letterSpacing: "-0.01em" }],
+        body: ["16px", { lineHeight: "1.6", fontWeight: "400" }],
+        small: ["14px", { lineHeight: "1.5", fontWeight: "400" }],
       },
       spacing: {
         page: "24px",
@@ -45,14 +50,17 @@ const config: Config = {
         card: "16px",
       },
       borderRadius: {
-        card: "8px", // Changed from 12px to 8px (rounded-lg)
-        button: "6px", // Changed from 8px to 6px (rounded-md)
-        input: "6px", // Changed from 8px to 6px (rounded-md)
-        modal: "12px", // Changed from 16px to 12px (rounded-lg)
+        card: "12px",
+        button: "10px",
+        input: "8px",
+        modal: "16px",
       },
       boxShadow: {
-        card: "0 4px 12px rgba(0,0,0,0.1)",
-        modal: "0 8px 32px rgba(0,0,0,0.2)",
+        card: "0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.1)",
+        cardHover: "0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08)",
+        button: "0 2px 8px rgba(29,185,84,0.25)",
+        buttonHover: "0 4px 12px rgba(29,185,84,0.35)",
+        modal: "0 20px 60px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)",
       },
     },
   },

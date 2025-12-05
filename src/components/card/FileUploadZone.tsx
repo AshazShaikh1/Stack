@@ -49,8 +49,8 @@ export function FileUploadZone({
               }}
               className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
                 !imageUrl
-                  ? 'bg-jet text-white border-jet'
-                  : 'bg-white text-jet-dark border-gray-light hover:border-jet'
+                  ? 'bg-emerald text-white border-emerald shadow-button'
+                  : 'bg-white text-jet-dark border-gray-light hover:border-emerald hover:text-emerald'
               }`}
             >
               Upload File
@@ -63,8 +63,8 @@ export function FileUploadZone({
               }}
               className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
                 imageUrl
-                  ? 'bg-jet text-white border-jet'
-                  : 'bg-white text-jet-dark border-gray-light hover:border-jet'
+                  ? 'bg-emerald text-white border-emerald shadow-button'
+                  : 'bg-white text-jet-dark border-gray-light hover:border-emerald hover:text-emerald'
               }`}
             >
               Image URL
@@ -78,7 +78,7 @@ export function FileUploadZone({
                 placeholder="https://example.com/image.jpg"
                 value={imageUrl}
                 onChange={(e) => onImageUrlChange(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-light text-body text-jet-dark placeholder:text-gray-muted focus:outline-none focus:ring-2 focus:ring-jet focus:border-transparent"
+                className="w-full px-4 py-2 rounded-lg border border-gray-light text-body text-jet-dark placeholder:text-gray-muted focus:outline-none focus:ring-2 focus:ring-emerald focus:border-transparent"
                 disabled={disabled}
               />
               {imageUrl && (
@@ -99,8 +99,8 @@ export function FileUploadZone({
           onDrop={onDrop}
           className={`relative w-full border-2 border-dashed rounded-lg transition-all ${
             isDragging
-              ? 'border-jet bg-jet/5'
-              : 'border-gray-light hover:border-jet/50'
+              ? 'border-emerald bg-emerald/5'
+              : 'border-gray-light hover:border-emerald/50'
           }`}
         >
           <input

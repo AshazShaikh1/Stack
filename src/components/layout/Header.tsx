@@ -42,7 +42,7 @@ export function Header() {
           {/* Search Bar */}
           <div className="flex-1 max-w-2xl">
             <form action="/search" method="get" className="w-full">
-              <div className="flex items-center gap-3 px-4 py-2 bg-gray-light rounded-lg hover:bg-gray-light/80 transition-colors">
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-light rounded-lg hover:bg-gray-light/80 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald focus-within:border-emerald transition-all duration-200 border border-transparent">
                 <SearchIcon size={18} className="text-gray-muted" />
                 <input
                   type="text"

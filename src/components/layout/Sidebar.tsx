@@ -51,8 +51,8 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-full w-16 bg-white border-r border-gray-light flex flex-col items-center py-4 z-30">
       {/* Logo */}
-      <Link href="/" className="mb-8">
-        <div className="w-10 h-10 bg-jet rounded-lg flex items-center justify-center text-white font-bold text-lg hover:opacity-90 transition-opacity">
+      <Link href="/" className="mb-8 group">
+        <div className="w-10 h-10 bg-emerald rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-button hover:scale-105 transition-all duration-200 group-hover:shadow-buttonHover">
           S
         </div>
       </Link>
@@ -72,7 +72,7 @@ export function Sidebar() {
                   className={`
                     w-12 h-12 rounded-lg flex items-center justify-center
                     transition-all duration-200
-                    text-gray-muted hover:bg-gray-light hover:text-jet
+                    text-gray-muted hover:bg-emerald/10 hover:text-emerald
                   `}
                   aria-label={item.label}
                 >
@@ -86,12 +86,12 @@ export function Sidebar() {
             <Tooltip key={item.href || index} text={item.label} position="right">
               <Link
                 href={item.href || '#'}
-                className={`
+                  className={`
                   w-12 h-12 rounded-lg flex items-center justify-center
                   transition-all duration-200
                   ${isActive 
-                    ? 'bg-jet text-white' 
-                    : 'text-gray-muted hover:bg-gray-light hover:text-jet'
+                    ? 'bg-emerald text-white shadow-button' 
+                    : 'text-gray-muted hover:bg-emerald/10 hover:text-emerald'
                   }
                 `}
                 aria-label={item.label}
