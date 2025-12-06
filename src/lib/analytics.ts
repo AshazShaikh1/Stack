@@ -243,7 +243,7 @@ export const trackEvent = {
   },
 
   /**
-   * Track stack creation
+   * Track collection creation
    */
   createStack: (userId: string, stackId: string, isPublic: boolean) => {
     analytics.track({
@@ -343,7 +343,7 @@ export const trackEvent = {
   },
 
   /**
-   * Track stack view
+   * Track collection view
    */
   viewStack: (userId: string | null, stackId: string) => {
     analytics.track({
@@ -374,7 +374,7 @@ export const trackEvent = {
   /**
    * Track search
    */
-  search: (userId: string | null, query: string, type: 'all' | 'stacks' | 'cards' | 'users', resultCount: number) => {
+  search: (userId: string | null, query: string, type: 'all' | 'collections' | 'cards' | 'users', resultCount: number) => {
     analytics.track({
       name: 'search',
       properties: {
@@ -387,7 +387,7 @@ export const trackEvent = {
   },
 
   /**
-   * Track become stacker
+   * Track become stacqer
    */
   becomeStacker: (userId: string) => {
     analytics.track({

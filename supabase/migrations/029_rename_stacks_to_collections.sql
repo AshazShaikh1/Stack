@@ -222,7 +222,7 @@ ON collections FOR DELETE
 TO authenticated
 USING (owner_id = auth.uid() OR is_admin(auth.uid()));
 
--- Update stack_cards policies
+-- Update collection_cards policies (formerly stack_cards)
 DROP POLICY IF EXISTS "Stack cards are viewable based on stack visibility" ON collection_cards;
 DROP POLICY IF EXISTS "Authenticated users can add cards to stacks" ON collection_cards;
 DROP POLICY IF EXISTS "Users can remove cards from their stacks" ON collection_cards;

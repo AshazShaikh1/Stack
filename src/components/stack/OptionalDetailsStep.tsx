@@ -190,7 +190,7 @@ export function OptionalDetailsStep({
           variant="primary"
           isLoading={isLoading}
         >
-          Create Stack
+          Create Collection
         </Button>
       </div>
     </div>

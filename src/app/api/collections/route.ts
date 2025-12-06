@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { title, description, tags, is_public, is_hidden, cover_image_url } = body;
 
-    // Check if user is trying to publish and is not a stacker
+    // Check if user is trying to publish and is not a stacqer
     if (is_public === true) {
       const { data: userProfile } = await supabase
         .from('users')
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       if (userProfile?.role !== 'stacker' && userProfile?.role !== 'admin') {
         return NextResponse.json(
           { 
-            error: 'Only Stackers can publish public collections',
+            error: 'Only Stacqers can publish public collections',
             become_stacker_required: true,
             required_fields: ['display_name', 'avatar_url', 'short_bio']
           },

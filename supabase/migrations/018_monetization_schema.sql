@@ -2,7 +2,7 @@
 -- MONETIZATION SCHEMA UPDATES
 -- ============================================
 
--- Add featured_until to users table for Featured Stackers
+-- Add featured_until to users table for Featured Stacqers
 ALTER TABLE users 
 ADD COLUMN IF NOT EXISTS featured_until timestamptz;
 
@@ -25,7 +25,7 @@ ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}';
 -- Add index for payments metadata queries
 CREATE INDEX IF NOT EXISTS idx_payments_metadata ON payments USING GIN (metadata);
 
--- Update explore_ranking to boost featured stackers
+-- Update explore_ranking to boost featured stacqers
 -- This will be done by updating the refresh function
 CREATE OR REPLACE FUNCTION refresh_explore_ranking()
 RETURNS void AS $$
@@ -34,7 +34,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Recreate explore_ranking with featured stacker boost
+-- Recreate explore_ranking with featured stacqer boost
 DROP MATERIALIZED VIEW IF EXISTS explore_ranking;
 
 CREATE MATERIALIZED VIEW explore_ranking AS
@@ -47,9 +47,9 @@ SELECT
     (COALESCE((s.stats->>'saves')::numeric, 0) * 1.5) +
     -- Quality score from owner
     (COALESCE(u.quality_score, 0) * 0.1) +
-    -- Featured stacker boost
+    -- Featured stacqer boost
     (CASE WHEN u.featured_until > now() THEN 25.0 ELSE 0.0 END) +
-    -- Recency decay (newer stacks get boost)
+    -- Recency decay (newer collections get boost)
     (CASE 
       WHEN s.created_at > now() - interval '7 days' THEN 10.0
       WHEN s.created_at > now() - interval '30 days' THEN 5.0

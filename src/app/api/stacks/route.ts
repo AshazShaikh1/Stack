@@ -5,7 +5,7 @@ import { rateLimiters, checkRateLimit, getRateLimitIdentifier, getIpAddress } fr
 
 /**
  * POST /api/stacks
- * Create a new stack
+ * Create a new collection
  * 
  * Body:
  * - title: string (required)
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Rate limiting: 50 stacks/day per user (reasonable limit)
+    // Rate limiting: 50 collections/day per user (reasonable limit)
     const ipAddress = getIpAddress(request);
     const identifier = getRateLimitIdentifier(user.id, ipAddress);
     const rateLimitResult = await checkRateLimit(rateLimiters.stacks, identifier);
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     if (!rateLimitResult.success) {
       return NextResponse.json(
         { 
-          error: 'Rate limit exceeded. You can create up to 50 stacks per day.',
+          error: 'Rate limit exceeded. You can create up to 50 collections per day.',
           limit: rateLimitResult.limit,
           remaining: rateLimitResult.remaining,
           reset: rateLimitResult.reset,
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { title, description, tags, is_public, is_hidden, cover_image_url } = body;
 
-    // Check if user is trying to publish and is not a stacker
+    // Check if user is trying to publish and is not a stacqer
     if (is_public === true) {
       const { data: userProfile } = await supabase
         .from('users')
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       if (userProfile?.role !== 'stacker' && userProfile?.role !== 'admin') {
         return NextResponse.json(
           { 
-            error: 'Only Stackers can publish public stacks',
+            error: 'Only Stacqers can publish public collections',
             become_stacker_required: true,
             required_fields: ['display_name', 'avatar_url', 'short_bio']
           },
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create stack
+    // Create collection
     const { data: stack, error: stackError } = await serviceClient
       .from('stacks')
       .insert({
@@ -141,9 +141,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (stackError || !stack) {
-      console.error('Error creating stack:', stackError);
+      console.error('Error creating collection:', stackError);
       return NextResponse.json(
-        { error: stackError?.message || 'Failed to create stack' },
+        { error: stackError?.message || 'Failed to create collection' },
         { status: 500 }
       );
     }

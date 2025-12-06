@@ -189,7 +189,7 @@ export default function APITestPage() {
     { 
       method: 'POST', 
       path: '/stacks', 
-      label: 'Create Stack', 
+      label: 'Create Collection', 
       requiresAuth: true,
       body: { is_public: true, is_hidden: false },
       bodyFields: { title: 'title-input', description: 'description-input' }

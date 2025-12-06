@@ -1,4 +1,4 @@
--- Migration: Stackers and Standalone Cards
+-- Migration: Stacqers and Standalone Cards
 -- This migration adds support for:
 -- 1. Card attributions tracking
 -- 2. Standalone cards (is_public field)
@@ -9,9 +9,10 @@
 -- 1. Ensure users.role is correct (already exists, but verify)
 -- ============================================
 -- users.role already exists with CHECK (role IN ('user', 'stacker', 'admin'))
+-- Note: 'stacker' role value is kept for backward compatibility, but represents "Stacqers" in the UI
 -- Default is 'user' which is correct
 
--- Helper function to check if user is stacker
+-- Helper function to check if user is stacqer (role = 'stacker')
 CREATE OR REPLACE FUNCTION is_stacker(user_id uuid)
 RETURNS boolean AS $$
 BEGIN
@@ -223,9 +224,9 @@ CREATE POLICY "Public cards are viewable"
   );
 
 -- ============================================
--- 8. RLS Policy for stack publishing (stacker only)
+-- 8. RLS Policy for collection publishing (stacqer only)
 -- ============================================
--- Note: We don't drop "Owners can update their stacks" as it may be needed
+-- Note: We don't drop "Owners can update their collections" as it may be needed
 -- Instead, we add a more specific policy that takes precedence
 -- The specific policy will be checked first due to PostgreSQL policy ordering
 
@@ -234,6 +235,7 @@ DROP POLICY IF EXISTS "Only stackers can publish stacks" ON stacks;
 
 -- Add specific policy for publishing (is_public = true)
 -- This policy is more restrictive and will be checked
+-- Note: Policy name references "stacks" but applies to collections (table renamed in migration 029)
 CREATE POLICY "Only stackers can publish stacks"
   ON stacks FOR UPDATE
   USING (owner_id = auth.uid())
@@ -245,7 +247,8 @@ CREATE POLICY "Only stackers can publish stacks"
     )
   );
   
--- Note: The existing "Owners can update their stacks" policy will still work
+-- Note: The existing "Owners can update their collections" policy will still work
 -- for non-publishing updates. The "Only stackers can publish stacks" policy
 -- is more specific and will be checked for updates that set is_public = true.
+-- Only stacqers (users with role = 'stacker') can publish public collections.
 

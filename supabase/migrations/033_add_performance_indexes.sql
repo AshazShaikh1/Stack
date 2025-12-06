@@ -53,7 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_ranking_scores_item ON ranking_scores(item_type, 
 -- Card attributions indexes
 CREATE INDEX IF NOT EXISTS idx_card_attributions_card_id ON card_attributions(card_id);
 CREATE INDEX IF NOT EXISTS idx_card_attributions_user_id ON card_attributions(user_id);
--- Note: card_attributions still uses stack_id (not renamed to collection_id in migration 029)
+-- Note: card_attributions still uses stack_id for legacy support (not renamed to collection_id in migration 029)
 CREATE INDEX IF NOT EXISTS idx_card_attributions_stack_id ON card_attributions(stack_id) WHERE stack_id IS NOT NULL;
 
 -- Collection tags indexes

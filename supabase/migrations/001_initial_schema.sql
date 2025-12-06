@@ -27,7 +27,7 @@ CREATE INDEX idx_users_role ON users (role);
 CREATE INDEX idx_users_quality_score ON users (quality_score DESC);
 
 -- ============================================
--- 2. STACKS TABLE
+-- 2. COLLECTIONS TABLE (formerly stacks)
 -- ============================================
 CREATE TABLE stacks (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -45,7 +45,7 @@ CREATE TABLE stacks (
   search_vector tsvector
 );
 
--- Indexes for stacks
+-- Indexes for collections (stacks table renamed in migration 029)
 CREATE INDEX idx_stacks_owner ON stacks (owner_id);
 CREATE INDEX idx_stacks_is_public ON stacks (is_public) WHERE is_public = true;
 CREATE INDEX idx_stacks_slug ON stacks (slug);

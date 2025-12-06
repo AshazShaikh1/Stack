@@ -119,7 +119,7 @@ export function CreateStackModal({ isOpen, onClose, fromCardCreation = false, on
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        setError('You must be logged in to create a stack');
+        setError('You must be logged in to create a collection');
         setIsLoading(false);
         return;
       }
@@ -151,7 +151,7 @@ export function CreateStackModal({ isOpen, onClose, fromCardCreation = false, on
         coverImageUrl = publicUrl;
       }
 
-      // Check if user is trying to publish and is not a stacker
+      // Check if user is trying to publish and is not a stacqer
       if (visibility === 'public' && userRole !== 'stacker' && userRole !== 'admin') {
         setShowBecomeStacker(true);
         setIsLoading(false);
@@ -180,7 +180,7 @@ export function CreateStackModal({ isOpen, onClose, fromCardCreation = false, on
           setIsLoading(false);
           return;
         }
-        setError(stackData.error || 'Failed to create stack');
+        setError(stackData.error || 'Failed to create collection');
         setIsLoading(false);
         return;
       }
@@ -236,7 +236,7 @@ export function CreateStackModal({ isOpen, onClose, fromCardCreation = false, on
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create Stack" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Create Collection" size="md">
       <form onSubmit={handleSubmit} className="space-y-4 relative overflow-hidden">
         {/* Step 1: Basic Info */}
         <div
@@ -296,7 +296,7 @@ export function CreateStackModal({ isOpen, onClose, fromCardCreation = false, on
           }
         }}
         onSuccess={async () => {
-          // User became stacker, update role and retry stack creation
+          // User became stacqer, update role and retry collection creation
           setUserRole('stacker');
           setShowBecomeStacker(false);
           

@@ -317,7 +317,7 @@ export async function PATCH(
 
       if (!userStacks || userStacks.length === 0) {
         return NextResponse.json(
-          { error: 'Forbidden: You can only edit cards you created or cards in your stacks' },
+          { error: 'Forbidden: You can only edit cards you created or cards in your collections' },
           { status: 403 }
         );
       }
@@ -332,7 +332,7 @@ export async function PATCH(
 
       if (!stackCard || stackCard.length === 0) {
         return NextResponse.json(
-          { error: 'Forbidden: You can only edit cards in your stacks' },
+          { error: 'Forbidden: You can only edit cards in your collections' },
           { status: 403 }
         );
       }

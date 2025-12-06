@@ -33,7 +33,7 @@ export function BasicInfoStep({
       <Input
         type="text"
         label="Title"
-        placeholder="My Awesome Stack"
+        placeholder="My Awesome Collection"
         value={title}
         onChange={(e) => onTitleChange(e.target.value)}
         required
@@ -47,7 +47,7 @@ export function BasicInfoStep({
         <textarea
           value={description}
           onChange={(e) => onDescriptionChange(e.target.value)}
-          placeholder="Describe what this stack is about..."
+          placeholder="Describe what this collection is about..."
           className="w-full px-4 py-3 rounded-input border border-gray-light text-body text-jet-dark placeholder:text-gray-muted focus:outline-none focus:ring-2 focus:ring-jet focus:border-transparent disabled:bg-gray-light disabled:cursor-not-allowed resize-none"
           rows={3}
           disabled={isLoading}

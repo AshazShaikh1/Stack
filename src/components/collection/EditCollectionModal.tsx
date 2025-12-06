@@ -123,7 +123,7 @@ export function EditCollectionModal({ isOpen, onClose, collection }: EditCollect
         coverImageUrl = publicUrl;
       }
 
-      // Check if user is trying to publish and is not a stacker
+      // Check if user is trying to publish and is not a stacqer
       if (visibility === 'public' && userRole !== 'stacker' && userRole !== 'admin') {
         setPendingVisibility(visibility);
         setShowBecomeStacker(true);
@@ -131,7 +131,7 @@ export function EditCollectionModal({ isOpen, onClose, collection }: EditCollect
         return;
       }
 
-      // Update collection via API (which enforces stacker check)
+      // Update collection via API (which enforces stacqer check)
       const response = await fetch(`/api/collections/${collection.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -339,7 +339,7 @@ export function EditCollectionModal({ isOpen, onClose, collection }: EditCollect
           setPendingVisibility(null);
         }}
         onSuccess={async () => {
-          // User became stacker, update role and retry update
+          // User became stacqer, update role and retry update
           setUserRole('stacker');
           setShowBecomeStacker(false);
           

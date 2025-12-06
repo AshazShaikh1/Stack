@@ -266,7 +266,7 @@ export async function PATCH(
       if (userProfile?.role !== 'stacker' && userProfile?.role !== 'admin') {
         return NextResponse.json(
           { 
-            error: 'Only Stackers can publish public collections',
+            error: 'Only Stacqers can publish public collections',
             become_stacker_required: true,
             required_fields: ['display_name', 'avatar_url', 'short_bio']
           },

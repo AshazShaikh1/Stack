@@ -38,7 +38,7 @@ export async function POST(
     if (!rateLimitResult.success) {
       return NextResponse.json(
         { 
-          error: 'Rate limit exceeded. You can clone up to 10 stacks per day.',
+          error: 'Rate limit exceeded. You can clone up to 10 collections per day.',
           limit: rateLimitResult.limit,
           remaining: rateLimitResult.remaining,
           reset: rateLimitResult.reset,

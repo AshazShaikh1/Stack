@@ -5,7 +5,7 @@ import { trackEvent } from '@/lib/analytics';
 
 /**
  * POST /api/users/become-stacker
- * Convert a user account to stacker role
+ * Convert a user account to stacqer role
  */
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is already a stacker or admin
+    // Check if user is already a stacqer or admin
     const { data: userProfile } = await supabase
       .from('users')
       .select('role, display_name, avatar_url')
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     if (userProfile?.role === 'stacker' || userProfile?.role === 'admin') {
       return NextResponse.json(
-        { error: 'User is already a stacker' },
+        { error: 'User is already a stacqer' },
         { status: 400 }
       );
     }
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     const serviceClient = createServiceClient();
 
-    // Update user to stacker role
+    // Update user to stacqer role
     const updateData: any = {
       role: 'stacker',
       display_name: display_name.trim(),
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user: updatedUser,
-      message: 'You are now a Stacker! You can publish public stacks and access creator features.',
+      message: 'You are now a Stacqer! You can publish public collections and access creator features on Stacq.',
     });
   } catch (error) {
     console.error('Error in become-stacker route:', error);

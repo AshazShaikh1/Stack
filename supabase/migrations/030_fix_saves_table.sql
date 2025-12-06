@@ -2,7 +2,7 @@
 -- FIX SAVES TABLE - Ensure it exists with correct structure
 -- ============================================
 -- This migration ensures the saves table exists with collection_id
--- and handles both new installations and migrations from stack_id
+-- and handles both new installations and migrations from stack_id (legacy support)
 
 -- Create saves table if it doesn't exist (with collection_id and card_id support)
 -- Note: We'll add the unique constraint separately after ensuring columns exist

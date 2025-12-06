@@ -73,7 +73,7 @@ export function BecomeStackerModal({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to become a Stacker');
+        throw new Error(data.error || 'Failed to become a Stacqer');
       }
 
       // Refresh session to get updated role
@@ -94,7 +94,7 @@ export function BecomeStackerModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Become a Stacker" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Become a Stacqer" size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <p className="text-body text-gray-muted mb-4">
@@ -190,7 +190,7 @@ export function BecomeStackerModal({
             disabled={isLoading || !displayName.trim()}
             className="flex-1"
           >
-            {isLoading ? 'Processing...' : 'Become a Stacker'}
+            {isLoading ? 'Processing...' : 'Become a Stacqer'}
           </Button>
         </div>
       </form>

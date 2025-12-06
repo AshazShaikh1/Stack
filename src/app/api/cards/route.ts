@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const id = collection_id || stack_id;
     const attributionSource = source || (id ? 'collection' : 'manual');
 
-    // Check if user is a stacker/admin (can publish standalone public cards)
+    // Check if user is a stacqer/admin (can publish standalone public cards)
     const { data: userProfile } = await supabase
       .from('users')
       .select('role')
@@ -106,9 +106,9 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Standalone card (not in a collection)
-      // Only stackers can create standalone public cards
+      // Only stacqers can create standalone public cards
       if (isStacker) {
-        // Stackers can set is_public as they wish
+        // Stacqers can set is_public as they wish
         cardIsPublic = is_public !== undefined ? is_public : false;
       } else {
         // Regular users cannot create standalone public cards
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
         
         // Warn if they tried to set it to public
         if (is_public === true) {
-          console.warn(`User ${user.id} attempted to create standalone public card but is not a stacker`);
+          console.warn(`User ${user.id} attempted to create standalone public card but is not a stacqer`);
         }
       }
     }

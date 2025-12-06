@@ -153,7 +153,7 @@ export function CreateCollectionModal({ isOpen, onClose, fromCardCreation = fals
         coverImageUrl = publicUrl;
       }
 
-      // Check if user is trying to publish and is not a stacker
+      // Check if user is trying to publish and is not a stacqer
       if (visibility === 'public' && userRole !== 'stacker' && userRole !== 'admin') {
         setShowBecomeStacker(true);
         setIsLoading(false);
@@ -302,7 +302,7 @@ export function CreateCollectionModal({ isOpen, onClose, fromCardCreation = fals
           }
         }}
         onSuccess={async () => {
-          // User became stacker, update role and retry collection creation
+          // User became stacqer, update role and retry collection creation
           setUserRole('stacker');
           setShowBecomeStacker(false);
           

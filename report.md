@@ -4,7 +4,7 @@
 
 **Stacq** (formerly Stack) is a human-curated resource platform where users create **Collections** (themed boards) and add **Cards** (resources like links, videos, articles, tools). The platform enables discovery, curation, and community interaction through upvotes, comments, saves, and follows.
 
-**Tech Stack:**
+**Technology Stack:**
 - Frontend: Next.js 14 (App Router) + TypeScript + Tailwind CSS
 - Backend: Next.js API Routes + Supabase
 - Database: PostgreSQL (Supabase)
@@ -49,7 +49,7 @@
 
 ## Phase 2: Core Features Implementation
 
-### Collections (Stacks)
+### Collections
 - Create, edit, delete collections
 - Public/private/unlisted visibility
 - Cover images and tags
@@ -77,7 +77,7 @@
 - **Upvotes**: One vote per user per collection/card
 - **Comments**: Threaded comments with nesting limit
 - **Saves**: Save collections and cards to personal library
-- **Follows**: Follow other users (stackers)
+- **Follows**: Follow other users (stacqers)
 - **Migrations**:
   - `017_follows_table.sql` - Follow system
   - `025_create_saves_table.sql` - Save functionality

@@ -14,6 +14,7 @@ interface UserProfile {
   display_name: string;
   avatar_url?: string;
   email: string;
+  role?: string;
 }
 
 interface AccountDropdownProps {
@@ -35,7 +36,7 @@ export function AccountDropdown({ user }: AccountDropdownProps) {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('users')
-        .select('id, username, display_name, avatar_url')
+        .select('id, username, display_name, avatar_url, role')
         .eq('id', user.id)
         .single();
 
@@ -190,7 +191,7 @@ export function AccountDropdown({ user }: AccountDropdownProps) {
                           }
                         }}
                       />
-                      <div className="fallback-initials hidden w-10 h-10 rounded-full bg-jet/20 flex items-center justify-center text-jet font-semibold text-sm">
+                      <div className="fallback-initials hidden w-10 h-10 rounded-full bg-jet/20 text-jet font-semibold text-sm">
                         {initials}
                       </div>
                     </>
@@ -227,6 +228,60 @@ export function AccountDropdown({ user }: AccountDropdownProps) {
                   </svg>
                 </div>
               </Link>
+            </div>
+
+            {/* Navigation Links */}
+            <div className="py-2 border-b border-gray-light">
+              <Link
+                href="/my-stacks"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-gray-light transition-colors text-left"
+              >
+                <div className="w-8 h-8 rounded-full bg-gray-light flex items-center justify-center flex-shrink-0">
+                  <svg
+                    className="w-4 h-4 text-jet"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                </div>
+                <div className="text-body font-semibold text-jet-dark">
+                  My Collections
+                </div>
+              </Link>
+              {(profile.role === 'stacker' || profile.role === 'admin') && (
+                <Link
+                  href="/stacker/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 hover:bg-gray-light transition-colors text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-emerald/10 flex items-center justify-center flex-shrink-0">
+                    <svg
+                      className="w-4 h-4 text-emerald"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="text-body font-semibold text-jet-dark">
+                    Dashboard
+                  </div>
+                </Link>
+              )}
             </div>
 
             {/* Sign Out */}

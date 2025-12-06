@@ -1,0 +1,595 @@
+[
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.refresh_explore_ranking\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "refresh_explore_ranking",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_refresh_explore_ranking_4f3a63f53c928710b8223dd57a3ccae3"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.is_following\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "is_following",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_is_following_48568cd6194c5f4ea0a349f7d5ec278f"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.backfill_card_attributions_dry_run\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "backfill_card_attributions_dry_run",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_backfill_card_attributions_dry_run_79f2ccdfaa60c51202bc08f33b3e8325"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.account_age_hours\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "account_age_hours",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_account_age_hours_50d1d9f6952f966b1b3720409e161ef2"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.get_ranking_config\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "get_ranking_config",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_get_ranking_config_fe3bab2a5b9c77927dcb7106c7a3138d"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.refresh_explore_ranking_items\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "refresh_explore_ranking_items",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_refresh_explore_ranking_items_b9e1910551509e8e236e8cae58987deb"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.handle_email_verification\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "handle_email_verification",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_handle_email_verification_52113b5de76aa8b96b39ce162fa5a4f5"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.is_admin\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "is_admin",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_is_admin_16a88430c478ebe4667e99ddef64c9b9"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.log_ranking_event\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "log_ranking_event",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_log_ranking_event_e52cb366510e78aaf45870d28f19314e"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.sync_card_visibility_on_collection_change\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "sync_card_visibility_on_collection_change",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_sync_card_visibility_on_collection_change_9b084a4cd6f4be1fa7767a569255427f"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.update_collections_search_vector\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "update_collections_search_vector",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_update_collections_search_vector_c3b9c61ba426c07e9501b494a38e5d18"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.notify_on_upvote\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "notify_on_upvote",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_notify_on_upvote_9d1369d9ce287fc8a516cbd5a868bbcc"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.create_notification\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "create_notification",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_create_notification_4d2f0e32a6f10485c6fb7a26f5ba948b"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.cleanup_old_clones\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "cleanup_old_clones",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_cleanup_old_clones_0d75b6af3715098744385a4830018227"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.owns_stack\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "owns_stack",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_owns_stack_4c85064f65c1159438ccfd305cb1920e"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.get_following_count\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "get_following_count",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_get_following_count_9a8c49e4100882ed55981a3c2c47b7eb"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.get_ranking_signals\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "get_ranking_signals",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_get_ranking_signals_324c65f9fa8331e2b2cd4ba5a164d997"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.backfill_card_attributions\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "backfill_card_attributions",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_backfill_card_attributions_d5f4e3ae7e5040d515ee567d5415502d"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.notify_on_clone\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "notify_on_clone",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_notify_on_clone_fcd37800bc49bec42a5ad3f1de444240"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.can_publish\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "can_publish",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_can_publish_84aa143597c95d59e23beb57c8e0adbf"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.notify_on_comment\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "notify_on_comment",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_notify_on_comment_d80e06e9f24e41d903def6324a18f0b0"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.get_collection_with_cards\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "get_collection_with_cards",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_get_collection_with_cards_01615b22980a9460b02ee0930d6ab284"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.update_collection_saves_count\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "update_collection_saves_count",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_update_collection_saves_count_1e8335c18549b0c77d5ab99d0477bc85"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.update_cards_search_vector\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "update_cards_search_vector",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_update_cards_search_vector_8f33f94d4db4c08942ee7c440bcdae61"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.handle_new_user\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "handle_new_user",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_handle_new_user_2cea22fa821f9bd8278d9a94594e8048"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.update_card_counters\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "update_card_counters",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_update_card_counters_63078fc393820cd50c4e2310670aee9e"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.is_stacker\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "is_stacker",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_is_stacker_931cf7b98d66347fad65dbbb3211e4a4"
+  },
+  {
+    "name": "function_search_path_mutable",
+    "title": "Function Search Path Mutable",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects functions where the search_path parameter is not set.",
+    "detail": "Function \\`public.get_follower_count\\` has a role mutable search_path",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+    "metadata": {
+      "name": "get_follower_count",
+      "type": "function",
+      "schema": "public"
+    },
+    "cache_key": "function_search_path_mutable_public_get_follower_count_bab62f21d6085ac59c6a094fbc07cf2c"
+  },
+  {
+    "name": "extension_in_public",
+    "title": "Extension in Public",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects extensions installed in the \\`public\\` schema.",
+    "detail": "Extension \\`pg_trgm\\` is installed in the public schema. Move it to another schema.",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public",
+    "metadata": {
+      "name": "pg_trgm",
+      "type": "extension",
+      "schema": "public"
+    },
+    "cache_key": "extension_in_public_pg_trgm"
+  },
+  {
+    "name": "extension_in_public",
+    "title": "Extension in Public",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects extensions installed in the \\`public\\` schema.",
+    "detail": "Extension \\`citext\\` is installed in the public schema. Move it to another schema.",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public",
+    "metadata": {
+      "name": "citext",
+      "type": "extension",
+      "schema": "public"
+    },
+    "cache_key": "extension_in_public_citext"
+  },
+  {
+    "name": "materialized_view_in_api",
+    "title": "Materialized View in API",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects materialized views that are accessible over the Data APIs.",
+    "detail": "Materialized view \\`public.explore_ranking_items\\` is selectable by anon or authenticated roles",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0016_materialized_view_in_api",
+    "metadata": {
+      "name": "explore_ranking_items",
+      "type": "materialized view",
+      "schema": "public"
+    },
+    "cache_key": "materialized_view_in_api_public_explore_ranking_items"
+  },
+  {
+    "name": "materialized_view_in_api",
+    "title": "Materialized View in API",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Detects materialized views that are accessible over the Data APIs.",
+    "detail": "Materialized view \\`public.explore_ranking\\` is selectable by anon or authenticated roles",
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0016_materialized_view_in_api",
+    "metadata": {
+      "name": "explore_ranking",
+      "type": "materialized view",
+      "schema": "public"
+    },
+    "cache_key": "materialized_view_in_api_public_explore_ranking"
+  },
+  {
+    "name": "auth_leaked_password_protection",
+    "title": "Leaked Password Protection Disabled",
+    "level": "WARN",
+    "facing": "EXTERNAL",
+    "categories": [
+      "SECURITY"
+    ],
+    "description": "Leaked password protection is currently disabled.",
+    "detail": "Supabase Auth prevents the use of compromised passwords by checking against HaveIBeenPwned.org. Enable this feature to enhance security.",
+    "cache_key": "auth_leaked_password_protection",
+    "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection",
+    "metadata": {
+      "type": "auth",
+      "entity": "Auth"
+    }
+  }
+]

@@ -81,12 +81,12 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
 
   const handleClone = async () => {
     if (!user) {
-      alert('Please sign in to clone stacks');
+      alert('Please sign in to clone collections');
       return;
     }
 
     if (isOwner) {
-      alert('You cannot clone your own stack');
+      alert('You cannot clone your own collection');
       return;
     }
 
@@ -101,7 +101,7 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to clone stack');
+        throw new Error(data.error || 'Failed to clone collection');
       }
 
       // Track analytics
@@ -113,12 +113,12 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
       if (data.stack?.id) {
         window.location.href = `/stack/${data.stack.id}`;
       } else {
-        alert('Stack cloned successfully!');
+        alert('Collection cloned successfully!');
         // Refresh the page to show updated state
         window.location.reload();
       }
     } catch (error: any) {
-      alert(error.message || 'Failed to clone stack. Please try again.');
+      alert(error.message || 'Failed to clone collection. Please try again.');
     }
   };
 

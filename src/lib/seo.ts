@@ -22,7 +22,7 @@ export function generateMetadata({
   publishedTime,
   author,
 }: SEOProps): Metadata {
-  const siteName = 'Stack';
+  const siteName = 'Stacq';
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const fullTitle = title ? `${title} | ${siteName}` : siteName;
   const fullDescription = description || 'Discover and share curated resources with the community';

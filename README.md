@@ -1,8 +1,8 @@
-# Stack MVP
+# Stacq MVP
 
-A human-curated resource platform where people create Stacks (boards) and add Cards (resources).
+A human-curated resource platform where people create Collections and add Cards (resources).
 
-## Tech Stack
+## Technology Stack
 
 - **Frontend:** Next.js 14 (App Router) + TypeScript + Tailwind CSS
 - **Backend:** Next.js API Routes + Supabase

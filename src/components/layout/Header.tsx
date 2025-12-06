@@ -29,7 +29,7 @@ export function Header() {
                 <input
                   type="text"
                   name="q"
-                  placeholder="Search stacks, cards, and stackers..."
+                  placeholder="Search collections, cards, and stacqers..."
                   className="flex-1 bg-transparent border-none outline-none text-body text-jet-dark placeholder:text-gray-muted"
                 />
               </div>

@@ -223,7 +223,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <Input
               type="text"
               name="q"
-              placeholder="Search stacks, cards, and stackers..."
+              placeholder="Search collections, cards, and stacqers..."
               defaultValue={query}
               className="flex-1"
             />

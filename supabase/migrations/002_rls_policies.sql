@@ -83,12 +83,13 @@ USING (is_admin(auth.uid()))
 WITH CHECK (is_admin(auth.uid()));
 
 -- ============================================
--- STACKS POLICIES
+-- COLLECTIONS POLICIES (table renamed from stacks to collections in migration 029)
 -- ============================================
 
--- Public stacks are viewable by everyone
--- Private stacks are viewable by owner
--- Hidden stacks are viewable by owner
+-- Public collections are viewable by everyone
+-- Private collections are viewable by owner
+-- Hidden collections are viewable by owner
+-- Note: Policy names and table references updated in migration 029
 CREATE POLICY "Stacks are viewable based on visibility"
 ON stacks FOR SELECT
 TO public
@@ -98,13 +99,15 @@ USING (
   OR (is_hidden = true AND owner_id = auth.uid())
 );
 
--- Authenticated users can create stacks
+-- Authenticated users can create collections
+-- Note: Policy name updated in migration 029
 CREATE POLICY "Authenticated users can create stacks"
 ON stacks FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = owner_id);
 
--- Owners can update their own stacks
+-- Owners can update their own collections
+-- Note: Policy name updated in migration 029
 CREATE POLICY "Owners can update own stacks"
 ON stacks FOR UPDATE
 TO authenticated
@@ -122,7 +125,7 @@ USING (owner_id = auth.uid() OR is_admin(auth.uid()));
 -- ============================================
 
 -- Active cards are viewable by everyone
--- Cards in private stacks are viewable by stack owner
+-- Cards in private collections are viewable by collection owner
 CREATE POLICY "Cards are viewable based on status and stack visibility"
 ON cards FOR SELECT
 TO public
@@ -157,10 +160,11 @@ USING (created_by = auth.uid() OR is_admin(auth.uid()))
 WITH CHECK (created_by = auth.uid() OR is_admin(auth.uid()));
 
 -- ============================================
--- STACK_CARDS POLICIES
+-- COLLECTION_CARDS POLICIES (table renamed from stack_cards to collection_cards in migration 029)
 -- ============================================
 
--- Viewable if stack is viewable
+-- Viewable if collection is viewable
+-- Note: Policy name updated in migration 029
 CREATE POLICY "Stack cards are viewable with stack"
 ON stack_cards FOR SELECT
 TO public
@@ -172,7 +176,7 @@ USING (
   )
 );
 
--- Stack owners can add cards to their stacks
+-- Collection owners can add cards to their collections
 CREATE POLICY "Stack owners can add cards"
 ON stack_cards FOR INSERT
 TO authenticated
@@ -183,7 +187,7 @@ WITH CHECK (
   )
 );
 
--- Stack owners can remove cards from their stacks
+-- Collection owners can remove cards from their collections
 CREATE POLICY "Stack owners can remove cards"
 ON stack_cards FOR DELETE
 TO authenticated
@@ -226,7 +230,7 @@ USING (
   )
 );
 
--- Stack owners can manage tags
+-- Collection owners can manage tags
 CREATE POLICY "Stack owners can manage tags"
 ON stack_tags FOR ALL
 TO authenticated
@@ -291,7 +295,7 @@ TO authenticated
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
 
--- Users can soft-delete their own comments, stack owners can delete comments on their stacks
+-- Users can soft-delete their own comments, collection owners can delete comments on their collections
 CREATE POLICY "Users and stack owners can delete comments"
 ON comments FOR UPDATE
 TO authenticated
