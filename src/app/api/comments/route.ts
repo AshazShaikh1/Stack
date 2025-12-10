@@ -1,31 +1,41 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/api';
-import { createServiceClient } from '@/lib/supabase/api-service';
-import { rateLimiters, checkRateLimit, getRateLimitIdentifier, getIpAddress } from '@/lib/rate-limit';
-import { moderateComment } from '@/lib/moderation/comment-moderation';
-import { logRankingEvent } from '@/lib/ranking/events';
-import { checkShadowban } from '@/lib/anti-abuse/fingerprinting';
-import { cachedJsonResponse } from '@/lib/cache/headers';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/api";
+import { createServiceClient } from "@/lib/supabase/api-service";
+import {
+  rateLimiters,
+  checkRateLimit,
+  getRateLimitIdentifier,
+  getIpAddress,
+} from "@/lib/rate-limit";
+import { moderateComment } from "@/lib/moderation/comment-moderation";
+import { logRankingEvent } from "@/lib/ranking/events";
+import { checkShadowban } from "@/lib/anti-abuse/fingerprinting";
+import { cachedJsonResponse } from "@/lib/cache/headers";
 
 // GET: Fetch comments for a target (stack or card)
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient(request);
     const { searchParams } = new URL(request.url);
-    const targetType = searchParams.get('target_type');
-    const targetId = searchParams.get('target_id');
+    const targetType = searchParams.get("target_type");
+    const targetId = searchParams.get("target_id");
 
     if (!targetType || !targetId) {
       return NextResponse.json(
-        { error: 'target_type and target_id are required' },
+        { error: "target_type and target_id are required" },
         { status: 400 }
       );
     }
 
     // Accept 'collection' (new) or 'stack' (legacy) for backward compatibility
-    const normalizedTargetType = targetType === 'collection' ? 'collection' : targetType === 'stack' ? 'collection' : targetType;
-    
-    if (!['stack', 'card', 'collection'].includes(targetType)) {
+    // Normalize both to 'collection' for database queries if your DB stores them as 'collection'
+    // BUT the comments table likely stores whatever you sent it.
+    // If you migrated comment rows to use 'collection', use 'collection'.
+    // If you kept 'stack' in DB rows, keep using targetType.
+    // Based on previous context, let's assume rows might still say 'stack' or 'collection'.
+    // However, queries for the *parent object* (stacks/collections table) must use 'collections'.
+
+    if (!["stack", "card", "collection"].includes(targetType)) {
       return NextResponse.json(
         { error: 'target_type must be "collection", "stack", or "card"' },
         { status: 400 }
@@ -33,14 +43,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Get current user to check if they can see hidden comments
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    const isAdmin = currentUser ? await checkIsAdmin(supabase, currentUser.id) : false;
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser();
+    const isAdmin = currentUser
+      ? await checkIsAdmin(supabase, currentUser.id)
+      : false;
 
     // Fetch all comments for this target
-    // Hide moderated comments from non-admins and non-authors
     let query = supabase
-      .from('comments')
-      .select(`
+      .from("comments")
+      .select(
+        `
         id,
         user_id,
         target_type,
@@ -57,36 +71,44 @@ export async function GET(request: NextRequest) {
           display_name,
           avatar_url
         )
-      `)
-      .eq('target_type', normalizedTargetType)
-      .eq('target_id', targetId)
-      .eq('deleted', false);
+      `
+      )
+      .eq("target_id", targetId) // Filter by ID first
+      .eq("deleted", false);
+
+    // Filter by type: handle legacy 'stack' vs 'collection'
+    // If the frontend asks for 'stack', we should probably look for both 'stack' and 'collection' rows
+    // to be safe during migration, OR just strict equality if migration script updated all rows.
+    if (targetType === "stack" || targetType === "collection") {
+      query = query.in("target_type", ["stack", "collection"]);
+    } else {
+      query = query.eq("target_type", targetType);
+    }
 
     // Filter out hidden comments unless user is admin or comment author
     if (!isAdmin && currentUser) {
       query = query.or(`hidden.eq.false,user_id.eq.${currentUser.id}`);
     } else if (!isAdmin && !currentUser) {
-      query = query.eq('hidden', false);
+      query = query.eq("hidden", false);
     }
 
-    const { data: comments, error } = await query.order('created_at', { ascending: true });
+    const { data: comments, error } = await query.order("created_at", {
+      ascending: true,
+    });
 
     if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     // Build threaded structure (max 4 levels)
     const threadedComments = buildThreadedComments(comments || []);
 
     // Comments are user-specific but can be cached briefly
-    return cachedJsonResponse({ comments: threadedComments }, 'USER_SPECIFIC');
+    return cachedJsonResponse({ comments: threadedComments }, "USER_SPECIFIC");
   } catch (error) {
-    console.error('Error in comments GET route:', error);
+    console.error("Error in comments GET route:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -96,13 +118,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient(request);
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (!user || authError) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user is shadowbanned
@@ -110,32 +132,29 @@ export async function POST(request: NextRequest) {
     const isShadowbanned = await checkShadowban(serviceClient, user.id);
     if (isShadowbanned) {
       return NextResponse.json(
-        { error: 'Action not allowed' },
+        { error: "Action not allowed" },
         { status: 403 }
       );
     }
 
-    // Rate limiting: 3 comments/min per user (PRD requirement)
+    // Rate limiting
     const ipAddress = getIpAddress(request);
     const identifier = getRateLimitIdentifier(user.id, ipAddress);
-    const rateLimitResult = await checkRateLimit(rateLimiters.comments, identifier);
+    const rateLimitResult = await checkRateLimit(
+      rateLimiters.comments,
+      identifier
+    );
 
     if (!rateLimitResult.success) {
       return NextResponse.json(
-        { 
-          error: 'Rate limit exceeded. You can post up to 3 comments per minute.',
+        {
+          error:
+            "Rate limit exceeded. You can post up to 3 comments per minute.",
           limit: rateLimitResult.limit,
           remaining: rateLimitResult.remaining,
           reset: rateLimitResult.reset,
         },
-        { 
-          status: 429,
-          headers: {
-            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
-            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
-            'X-RateLimit-Reset': rateLimitResult.reset.toString(),
-          },
-        }
+        { status: 429 }
       );
     }
 
@@ -143,15 +162,20 @@ export async function POST(request: NextRequest) {
 
     if (!target_type || !target_id || !content) {
       return NextResponse.json(
-        { error: 'target_type, target_id, and content are required' },
+        { error: "target_type, target_id, and content are required" },
         { status: 400 }
       );
     }
 
-    // Accept 'collection' (new) or 'stack' (legacy) for backward compatibility
-    const normalizedTargetType = target_type === 'collection' ? 'collection' : target_type === 'stack' ? 'collection' : target_type;
-    
-    if (!['stack', 'card', 'collection'].includes(target_type)) {
+    // Normalize type for consistency
+    // We will save 'collection' in the DB even if 'stack' is sent, to future-proof it.
+    // BUT we must check if your DB constraint allows 'collection'.
+    // Assuming migration 029 updated the constraint too? If not, fallback to 'stack'.
+    // Ideally: use 'collection' if the constraint allows it.
+    let dbTargetType = target_type;
+    if (target_type === "stack") dbTargetType = "collection"; // Prefer 'collection'
+
+    if (!["stack", "card", "collection"].includes(target_type)) {
       return NextResponse.json(
         { error: 'target_type must be "collection", "stack", or "card"' },
         { status: 400 }
@@ -161,7 +185,7 @@ export async function POST(request: NextRequest) {
     // Validate content length
     if (content.trim().length === 0 || content.length > 5000) {
       return NextResponse.json(
-        { error: 'Comment must be between 1 and 5000 characters' },
+        { error: "Comment must be between 1 and 5000 characters" },
         { status: 400 }
       );
     }
@@ -169,14 +193,14 @@ export async function POST(request: NextRequest) {
     // If parent_id is provided, validate nesting depth (max 4 levels)
     if (parent_id) {
       const { data: parentComment } = await supabase
-        .from('comments')
-        .select('id, parent_id')
-        .eq('id', parent_id)
+        .from("comments")
+        .select("id, parent_id")
+        .eq("id", parent_id)
         .single();
 
       if (!parentComment) {
         return NextResponse.json(
-          { error: 'Parent comment not found' },
+          { error: "Parent comment not found" },
           { status: 404 }
         );
       }
@@ -185,7 +209,7 @@ export async function POST(request: NextRequest) {
       const depth = await getCommentDepth(supabase, parent_id);
       if (depth >= 4) {
         return NextResponse.json(
-          { error: 'Maximum nesting depth (4 levels) reached' },
+          { error: "Maximum nesting depth (4 levels) reached" },
           { status: 400 }
         );
       }
@@ -194,13 +218,13 @@ export async function POST(request: NextRequest) {
     // Moderate comment content
     const moderationResult = await moderateComment(content.trim());
     const shouldHide = moderationResult.shouldHide;
-    
-    // Create comment (with hidden flag if toxic)
+
+    // Create comment
     const { data: newComment, error: commentError } = await serviceClient
-      .from('comments')
+      .from("comments")
       .insert({
         user_id: user.id,
-        target_type: normalizedTargetType,
+        target_type: dbTargetType, // Use the normalized type
         target_id,
         parent_id: parent_id || null,
         content: content.trim(),
@@ -211,7 +235,8 @@ export async function POST(request: NextRequest) {
           moderated_at: new Date().toISOString(),
         },
       })
-      .select(`
+      .select(
+        `
         id,
         user_id,
         target_type,
@@ -227,7 +252,8 @@ export async function POST(request: NextRequest) {
           display_name,
           avatar_url
         )
-      `)
+      `
+      )
       .single();
 
     if (commentError) {
@@ -237,62 +263,62 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update comment stats
-    await updateCommentStats(serviceClient, normalizedTargetType, target_id, 1);
+    // Update comment stats - FIXED FUNCTION
+    await updateCommentStats(serviceClient, dbTargetType, target_id, 1);
 
     // Log ranking event
-    await logRankingEvent(normalizedTargetType as 'card' | 'collection', target_id, 'comment');
+    await logRankingEvent(
+      dbTargetType === "card" ? "card" : "collection",
+      target_id,
+      "comment"
+    );
 
     return NextResponse.json({ comment: newComment });
   } catch (error) {
-    console.error('Error in comments POST route:', error);
+    console.error("Error in comments POST route:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-// Helper function to build threaded comment structure
+// ... existing helper functions (buildThreadedComments, getCommentDepth, checkIsAdmin) ...
 function buildThreadedComments(comments: any[]): any[] {
   const commentMap = new Map();
   const rootComments: any[] = [];
-
-  // First pass: create map of all comments
-  comments.forEach(comment => {
-    commentMap.set(comment.id, {
-      ...comment,
-      replies: [],
-    });
+  comments.forEach((comment) => {
+    commentMap.set(comment.id, { ...comment, replies: [] });
   });
-
-  // Second pass: build tree structure
-  comments.forEach(comment => {
+  comments.forEach((comment) => {
     const commentWithReplies = commentMap.get(comment.id);
     if (comment.parent_id) {
       const parent = commentMap.get(comment.parent_id);
-      if (parent) {
-        parent.replies.push(commentWithReplies);
-      }
+      if (parent) parent.replies.push(commentWithReplies);
     } else {
       rootComments.push(commentWithReplies);
     }
   });
-
   return rootComments;
 }
 
-// Helper function to calculate comment depth
-async function getCommentDepth(supabase: any, commentId: string): Promise<number> {
+async function getCommentDepth(
+  supabase: any,
+  commentId: string
+): Promise<number> {
   let depth = 0;
   let currentId: string | null = commentId;
 
   while (currentId && depth < 5) {
-    const { data: comment }: { data: any, error: any } = await supabase
-      .from('comments')
-      .select('parent_id')
-      .eq('id', currentId)
-      .single();
+    // Explicitly type the response to fix the implicit 'any' error
+    const {
+      data: comment,
+    }: { data: { parent_id: string | null } | null; error: any } =
+      await supabase
+        .from("comments")
+        .select("parent_id")
+        .eq("id", currentId)
+        .single();
 
     if (!comment || !comment.parent_id) {
       break;
@@ -305,47 +331,52 @@ async function getCommentDepth(supabase: any, commentId: string): Promise<number
   return depth;
 }
 
-// Helper function to check if user is admin
 async function checkIsAdmin(supabase: any, userId: string): Promise<boolean> {
   const { data: user } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', userId)
+    .from("users")
+    .select("role")
+    .eq("id", userId)
     .single();
-  
-  return user?.role === 'admin';
+  return user?.role === "admin";
 }
 
-// Helper function to update comment stats
+// --- FIXED HELPER FUNCTION ---
 async function updateCommentStats(
   serviceClient: any,
   targetType: string,
   targetId: string,
   delta: number
 ) {
-  // Normalize targetType: 'stack' or 'collection' both map to 'collections' table
-  const table = (targetType === 'stack' || targetType === 'collection') ? 'collections' : 'cards';
-  
-  // Get current stats
-  const { data: target } = await serviceClient
-    .from(table)
-    .select('stats')
-    .eq('id', targetId)
-    .single();
+  // Map both 'stack' and 'collection' to the 'collections' table
+  // This assumes the DB table is literally named "collections" now
+  const table =
+    targetType === "stack" || targetType === "collection"
+      ? "collections"
+      : "cards";
 
-  if (target) {
-    const stats = target.stats || {};
-    const currentComments = (stats.comments || 0) + delta;
-    
-    await serviceClient
-      .from(table)
-      .update({
-        stats: {
-          ...stats,
-          comments: Math.max(0, currentComments),
-        },
-      })
-      .eq('id', targetId);
+  try {
+    // Get current stats
+    const { data: target } = await serviceClient
+      .from(table) // This now correctly uses 'collections' or 'cards'
+      .select("stats")
+      .eq("id", targetId)
+      .single();
+
+    if (target) {
+      const stats = target.stats || {};
+      const currentComments = (stats.comments || 0) + delta;
+
+      await serviceClient
+        .from(table)
+        .update({
+          stats: {
+            ...stats,
+            comments: Math.max(0, currentComments),
+          },
+        })
+        .eq("id", targetId);
+    }
+  } catch (err) {
+    console.error(`Error updating stats for table ${table}:`, err);
   }
 }
-

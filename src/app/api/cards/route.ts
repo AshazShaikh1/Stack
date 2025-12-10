@@ -280,10 +280,55 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // NEW: Notify followers if the card is public
+    if (cardIsPublic) {
+      // Run in background to not block response
+      (async () => {
+        try {
+          // 1. Get all followers
+          const { data: followers } = await serviceClient
+            .from("follows")
+            .select("follower_id")
+            .eq("following_id", user.id);
+
+          if (followers && followers.length > 0) {
+            // 2. Create notification objects
+            const notifications = followers.map((follower) => ({
+              user_id: follower.follower_id, // The recipient (follower)
+              actor_id: user.id, // The actor (creator)
+              type: "new_card",
+              data: {
+                card_id: cardId,
+                card_title:
+                  title || description?.substring(0, 50) || "a new card",
+                thumbnail_url: thumbnail_url,
+              },
+              read: false,
+            }));
+
+            // 3. Batch insert notifications
+            const { error: notifError } = await serviceClient
+              .from("notifications")
+              .insert(notifications);
+
+            if (notifError) {
+              console.error(
+                "Failed to create follower notifications for new card:",
+                notifError
+              );
+            }
+          }
+        } catch (err) {
+          console.error("Error in notification background task:", err);
+        }
+      })();
+    }
+
     // Return success
     const { data: cardWithAttributions } = await supabase
       .from("cards")
-      .select(`
+      .select(
+        `
         *,
         attributions:card_attributions (
           id,
@@ -298,7 +343,8 @@ export async function POST(request: NextRequest) {
             avatar_url
           )
         )
-      `)
+      `
+      )
       .eq("id", cardId)
       .single();
 

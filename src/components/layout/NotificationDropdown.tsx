@@ -1,23 +1,32 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
-import { Tooltip } from '@/components/ui/Tooltip';
-import { NotificationIcon } from '@/components/ui/Icons';
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { NotificationIcon } from "@/components/ui/Icons";
 
 interface Notification {
   id: string;
-  type: 'follow' | 'upvote' | 'comment' | 'clone';
+  // UPDATE: Add new types
+  type:
+    | "follow"
+    | "upvote"
+    | "comment"
+    | "clone"
+    | "new_card"
+    | "new_collection";
   actor_id: string;
   data: {
     collection_id?: string;
-    stack_id?: string; // Legacy support
+    stack_id?: string;
     collection_title?: string;
-    stack_title?: string; // Legacy support
+    stack_title?: string;
     card_id?: string;
+    // UPDATE: Add card_title
+    card_title?: string;
     comment_id?: string;
     comment_content?: string;
   };
@@ -48,10 +57,11 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
 
     const fetchNotifications = async () => {
       const supabase = createClient();
-      
+
       const { data, error } = await supabase
-        .from('notifications')
-        .select(`
+        .from("notifications")
+        .select(
+          `
           id,
           type,
           actor_id,
@@ -64,13 +74,14 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
             display_name,
             avatar_url
           )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+        `
+        )
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
         .limit(20);
 
       if (error) {
-        console.error('Error fetching notifications:', error);
+        console.error("Error fetching notifications:", error);
         setIsLoading(false);
         return;
       }
@@ -86,22 +97,23 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
       }));
 
       setNotifications(formattedNotifications);
-      setUnreadCount(formattedNotifications.filter((n: Notification) => !n.read).length);
+      setUnreadCount(
+        formattedNotifications.filter((n: Notification) => !n.read).length
+      );
       setIsLoading(false);
     };
 
     fetchNotifications();
 
-    // Subscribe to real-time updates
     const supabase = createClient();
     const channel = supabase
-      .channel('notifications')
+      .channel("notifications")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
+          event: "*",
+          schema: "public",
+          table: "notifications",
           filter: `user_id=eq.${user.id}`,
         },
         () => {
@@ -117,58 +129,74 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
 
   const handleNotificationClick = async (notification: Notification) => {
-    // Mark as read
     if (!notification.read) {
       const supabase = createClient();
       await supabase
-        .from('notifications')
+        .from("notifications")
         .update({ read: true })
-        .eq('id', notification.id);
+        .eq("id", notification.id);
 
-      setNotifications(prev =>
-        prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     }
 
     setIsOpen(false);
 
-    // Redirect based on notification type
-    const collectionId = notification.data.collection_id || notification.data.stack_id; // Support both
-    
+    const collectionId =
+      notification.data.collection_id || notification.data.stack_id;
+
     switch (notification.type) {
-      case 'follow':
+      case "follow":
         router.push(`/profile/${notification.actor.username}`);
         break;
-      case 'upvote':
-        // If it's a comment upvote, go to the collection with the comment
+      case "upvote":
         if (notification.data.comment_id && collectionId) {
           router.push(`/collection/${collectionId}`);
         } else if (collectionId) {
           router.push(`/collection/${collectionId}`);
+        } else if (notification.data.card_id) {
+          router.push(`/card/${notification.data.card_id}`);
         }
         break;
-      case 'comment':
+      case "comment":
+        if (collectionId) {
+          router.push(`/collection/${collectionId}`);
+        } else if (notification.data.card_id) {
+          router.push(`/card/${notification.data.card_id}`);
+        }
+        break;
+      case "clone":
         if (collectionId) {
           router.push(`/collection/${collectionId}`);
         }
         break;
-      case 'clone':
+      // UPDATE: Handle new types
+      case "new_card":
+        if (notification.data.card_id) {
+          router.push(`/card/${notification.data.card_id}`);
+        }
+        break;
+      case "new_collection":
         if (collectionId) {
           router.push(`/collection/${collectionId}`);
         }
@@ -179,28 +207,44 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
   };
 
   const formatNotificationText = (notification: Notification): string => {
-    const actorName = notification.actor?.display_name || 'Someone';
-    const collectionTitle = notification.data.collection_title || notification.data.stack_title || 'your collection';
-    
+    const actorName = notification.actor?.display_name || "Someone";
+    const collectionTitle =
+      notification.data.collection_title ||
+      notification.data.stack_title ||
+      "your collection";
+
     switch (notification.type) {
-      case 'follow':
+      case "follow":
         return `${actorName} started following you`;
-      case 'upvote':
-        // Check if it's an upvote on a comment
+      case "upvote":
         if (notification.data.comment_id) {
-          const commentContent = notification.data.comment_content 
-            ? `"${notification.data.comment_content.substring(0, 50)}${notification.data.comment_content.length > 50 ? '...' : ''}"`
-            : 'your comment';
+          const commentContent = notification.data.comment_content
+            ? `"${notification.data.comment_content.substring(0, 50)}${
+                notification.data.comment_content.length > 50 ? "..." : ""
+              }"`
+            : "your comment";
           return `${actorName} liked your ${commentContent} comment`;
         }
-        // Otherwise it's an upvote on a collection
+        if (notification.data.card_id) {
+          return `${actorName} upvoted your card`;
+        }
         return `${actorName} upvoted your ${collectionTitle} collection`;
-      case 'comment':
+      case "comment":
+        if (notification.data.card_id) {
+          return `${actorName} commented on your card`;
+        }
         return `${actorName} commented on your ${collectionTitle} collection`;
-      case 'clone':
+      case "clone":
         return `${actorName} cloned your ${collectionTitle} collection`;
+      // UPDATE: Format text for new types
+      case "new_card":
+        return `${actorName} posted a new card: ${
+          notification.data.card_title || "Check it out"
+        }`;
+      case "new_collection":
+        return `${actorName} created a new collection: ${collectionTitle}`;
       default:
-        return 'New notification';
+        return "New notification";
     }
   };
 
@@ -209,18 +253,20 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 60) return "just now";
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800)
+      return `${Math.floor(diffInSeconds / 86400)}d ago`;
     return date.toLocaleDateString();
   };
 
   const getInitials = (name: string) => {
     return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
@@ -239,13 +285,12 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
           <NotificationIcon size={20} className="text-gray-muted" />
           {unreadCount > 0 && (
             <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs font-semibold rounded-full flex items-center justify-center">
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </button>
       </Tooltip>
 
-      {/* Dropdown Menu */}
       {isOpen && (
         <>
           <div
@@ -253,15 +298,15 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
             onClick={() => setIsOpen(false)}
           />
           <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-light z-20 overflow-hidden max-h-[500px] flex flex-col">
-            {/* Header */}
             <div className="px-4 py-3 border-b border-gray-light">
               <h3 className="font-semibold text-jet-dark">Notifications</h3>
             </div>
 
-            {/* Notifications List */}
             <div className="overflow-y-auto flex-1">
               {isLoading ? (
-                <div className="p-4 text-center text-gray-muted">Loading...</div>
+                <div className="p-4 text-center text-gray-muted">
+                  Loading...
+                </div>
               ) : notifications.length === 0 ? (
                 <div className="p-8 text-center text-gray-muted">
                   <p>No notifications yet</p>
@@ -270,22 +315,22 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
                 <div className="divide-y divide-gray-light">
                   {notifications.map((notification) => {
                     const actor = notification.actor || {};
-                    const initials = getInitials(actor.display_name || 'U');
-                    
+                    const initials = getInitials(actor.display_name || "U");
+
                     return (
                       <button
                         key={notification.id}
                         type="button"
                         onClick={() => handleNotificationClick(notification)}
                         className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-light transition-colors text-left ${
-                          !notification.read ? 'bg-blue-50/50' : ''
+                          !notification.read ? "bg-blue-50/50" : ""
                         }`}
                       >
                         <div className="flex-shrink-0 mt-1">
                           {actor.avatar_url ? (
                             <Image
                               src={actor.avatar_url}
-                              alt={actor.display_name || 'User'}
+                              alt={actor.display_name || "User"}
                               width={40}
                               height={40}
                               className="rounded-full"
@@ -319,4 +364,3 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
     </div>
   );
 }
-
