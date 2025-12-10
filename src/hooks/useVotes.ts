@@ -121,7 +121,7 @@ export function useVotes({ targetType, targetId, initialUpvotes = 0, initialVote
 
       // Track analytics
       if (data.voted && user) {
-        trackEvent.upvote(user.id, targetType, targetId);
+        trackEvent.upvote(user.id, targetType as any, targetId);
       }
     } catch (err: any) {
       setError(err.message);

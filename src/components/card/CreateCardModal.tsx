@@ -7,9 +7,11 @@ import { useRouter } from 'next/navigation';
 import { CreateCollectionModal } from '@/components/collection/CreateCollectionModal';
 import { CardTypeSelector } from './CardTypeSelector';
 import { CardDetailsStep } from './CardDetailsStep';
+import { OptionalDetailsStep } from '@/components/stack/OptionalDetailsStep';
 import { StackSelector } from './StackSelector';
+import { BecomeStackerModal } from '@/components/auth/BecomeStackerModal';
 import { trackEvent } from '@/lib/analytics';
-import type { CardType, FileData } from '@/types';
+import type { CardType, FileData, StackVisibility } from '@/types';
 
 interface CreateCardModalProps {
   isOpen: boolean;
@@ -18,12 +20,14 @@ interface CreateCardModalProps {
   initialFileData?: FileData;
 }
 
-type Step = 'type' | 'details' | 'stack';
+type Step = 'type' | 'details' | 'optional' | 'stack';
 
 export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }: CreateCardModalProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>('type');
   const [cardType, setCardType] = useState<CardType | null>(null);
+  
+  // Details
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -31,22 +35,54 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string>('');
   const [docsFile, setDocsFile] = useState<File | null>(null);
+  
+  // Optional Details
+  const [visibility, setVisibility] = useState<StackVisibility>('private');
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [isDraggingCover, setIsDraggingCover] = useState(false);
+
+  // Collections
   const [collections, setCollections] = useState<any[]>([]);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string>('');
-  // Legacy support
-  const [stacks, setStacks] = useState<any[]>([]);
   const [selectedStackId, setSelectedStackId] = useState<string>('');
+  
+  // State
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [isDraggingDocs, setIsDraggingDocs] = useState(false);
+  
+  // Modals
   const [isCreateCollectionModalOpen, setIsCreateCollectionModalOpen] = useState(false);
+  const [isBecomeStackerModalOpen, setIsBecomeStackerModalOpen] = useState(false);
+  const [isStacker, setIsStacker] = useState(false);
+
   const titleRef = useRef<string>('');
   const descriptionRef = useRef<string>('');
   const metadataFetchUrlRef = useRef<string>('');
 
-  // Handle initial URL from extension
+  useEffect(() => {
+    if (isOpen) {
+      checkUserRole();
+    }
+  }, [isOpen]);
+
+  const checkUserRole = async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      setIsStacker(profile?.role === 'stacker' || profile?.role === 'admin');
+    }
+  };
+
   useEffect(() => {
     if (isOpen && initialUrl) {
       setUrl(initialUrl);
@@ -58,7 +94,6 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
     }
   }, [isOpen, initialUrl]);
 
-  // Handle initial file data from extension
   useEffect(() => {
     if (isOpen && initialFileData) {
       setCardType(initialFileData.cardType);
@@ -94,33 +129,18 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
     }
   }, [isOpen, initialFileData]);
 
-  // Fetch user's collections when modal opens
   useEffect(() => {
-    if (isOpen && step === 'stack') {
+    if ((isOpen && step === 'stack') || (!isCreateCollectionModalOpen && step === 'stack')) {
       fetchCollections();
     }
-  }, [isOpen, step]);
-
-  // Refresh collections when create collection modal closes
-  useEffect(() => {
-    if (!isCreateCollectionModalOpen && step === 'stack') {
-      fetchCollections();
-    }
-  }, [isCreateCollectionModalOpen, step]);
+  }, [isOpen, step, isCreateCollectionModalOpen]);
 
   const fetchMetadata = async (urlToFetch: string) => {
     try {
       new URL(urlToFetch);
-    } catch {
-      return;
-    }
+    } catch { return; }
 
-    // Store the URL we're fetching metadata for
     metadataFetchUrlRef.current = urlToFetch;
-    // Store current values to check if user typed while fetching
-    const titleAtFetchStart = titleRef.current;
-    const descriptionAtFetchStart = descriptionRef.current;
-
     setIsFetchingMetadata(true);
     try {
       const response = await fetch('/api/cards/metadata', {
@@ -131,22 +151,17 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
 
       if (response.ok) {
         const data = await response.json();
-        // Only auto-fill if:
-        // 1. The URL hasn't changed (user didn't change URL while fetching)
-        // 2. The field was empty when we started fetching
-        // 3. The field is still empty (user hasn't typed while we were fetching)
         if (metadataFetchUrlRef.current === urlToFetch) {
-          // Check current ref values (they update immediately when user types)
-          const currentTitle = titleRef.current;
-          const currentDescription = descriptionRef.current;
-          
-          if (data.title && !titleAtFetchStart && !currentTitle.trim()) {
+          if (!titleRef.current.trim() && data.title) {
             setTitle(data.title);
             titleRef.current = data.title;
           }
-          if (data.description && !descriptionAtFetchStart && !currentDescription.trim()) {
+          if (!descriptionRef.current.trim() && data.description) {
             setDescription(data.description);
             descriptionRef.current = data.description;
+          }
+          if (data.thumbnail_url && !coverImagePreview) {
+            setCoverImagePreview(data.thumbnail_url);
           }
         }
       }
@@ -158,36 +173,24 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
   };
 
   const fetchCollections = async () => {
-    try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) return;
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-      const { data: userCollections, error } = await supabase
-        .from('collections')
-        .select('id, title, description, cover_image_url')
-        .eq('owner_id', user.id)
-        .order('created_at', { ascending: false });
+    const { data: userCollections } = await supabase
+      .from('collections')
+      .select('id, title, description, cover_image_url')
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching collections:', error);
-      } else {
-        setCollections(userCollections || []);
-        // Legacy support
-        setStacks(userCollections || []);
-      }
-    } catch (err) {
-      console.error('Error fetching collections:', err);
-    }
+    setCollections(userCollections || []);
+    setStacks(userCollections || []);
   };
 
-  const handleCardTypeSelect = useCallback((type: CardType) => {
+  const handleCardTypeSelect = (type: CardType) => {
     setCardType(type);
     setStep('details');
-    setIsDraggingImage(false);
-    setIsDraggingDocs(false);
-  }, []);
+  };
 
   const handleFileSelect = (file: File, type: 'image' | 'docs') => {
     if (type === 'image') {
@@ -197,75 +200,25 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
       }
       setImageFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
+      reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
     } else {
-      const allowedTypes = ['.pdf', '.doc', '.docx', '.txt'];
-      const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
-      if (!allowedTypes.includes(fileExt)) {
-        setError('Please select a valid document file (PDF, DOC, DOCX, or TXT)');
-        return;
-      }
       setDocsFile(file);
     }
     setError('');
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFileSelect(file, 'image');
-  };
-
-  const handleDocsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFileSelect(file, 'docs');
-  };
-
-  const handleDragOver = (e: React.DragEvent, type: 'image' | 'docs') => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (type === 'image') setIsDraggingImage(true);
-    else setIsDraggingDocs(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent, type: 'image' | 'docs') => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (type === 'image') setIsDraggingImage(false);
-    else setIsDraggingDocs(false);
-  };
-
-  const handleDrop = (e: React.DragEvent, type: 'image' | 'docs') => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (type === 'image') setIsDraggingImage(false);
-    else setIsDraggingDocs(false);
-
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFileSelect(file, type);
-  };
-
-  const handleUrlChange = useCallback(async (newUrl: string) => {
-    setUrl(newUrl);
-    
-    if (!newUrl.trim()) {
-      setTitle('');
-      setDescription('');
-      titleRef.current = '';
-      descriptionRef.current = '';
-      return;
-    }
-
-    await fetchMetadata(newUrl);
-  }, []);
-
-  const handleDetailsNext = () => {
+  const handleDetailsNext = async () => {
     if (cardType === 'link' && !url.trim()) {
       setError('Please enter a URL');
       return;
     }
+    
+    // Explicit fetch if moving forward
+    if (cardType === 'link' && url.trim() && (!title.trim() || !coverImagePreview)) {
+      await fetchMetadata(url);
+    }
+
     if (cardType === 'image' && !imageFile && !imageUrl) {
       setError('Please select an image or enter an image URL');
       return;
@@ -278,13 +231,54 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
       setError('Title is required');
       return;
     }
+    
+    if (cardType === 'image' && !coverImagePreview && imagePreview) {
+      setCoverImagePreview(imagePreview);
+    }
+
     setError('');
-    // Allow skipping stack selection - user can create standalone card
+    setStep('optional');
+  };
+
+  const handleOptionalNext = () => {
+    // Check permissions if Public is selected
+    if (visibility === 'public' && !isStacker) {
+      setIsBecomeStackerModalOpen(true);
+      return;
+    }
+    
+    fetchCollections();
     setStep('stack');
   };
 
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file');
+      return;
+    }
+    setCoverImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCoverImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    setError('');
+  };
+
+  const handleCoverDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingCover(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const event = { target: { files: [file] } } as unknown as React.ChangeEvent<HTMLInputElement>;
+      handleCoverImageChange(event);
+    }
+  };
+
   const handleSubmit = async () => {
-    // Stack is optional - allow standalone cards
     setIsLoading(true);
     setError('');
 
@@ -293,7 +287,7 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        setError('You must be logged in to add cards');
+        setError('You must be logged in');
         setIsLoading(false);
         return;
       }
@@ -301,52 +295,46 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
       let cardUrl = url;
       let thumbnailUrl = '';
 
-      // Handle image upload or URL
-      if (cardType === 'image') {
-        if (imageFile) {
-          const fileExt = imageFile.name.split('.').pop();
-          const fileName = `cards/${user.id}/${Date.now()}.${fileExt}`;
-          const { error: uploadError } = await supabase.storage
-            .from('thumbnails')
-            .upload(fileName, imageFile);
-
-          if (!uploadError) {
-            const { data: { publicUrl } } = supabase.storage
-              .from('thumbnails')
-              .getPublicUrl(fileName);
-            cardUrl = publicUrl;
-            thumbnailUrl = publicUrl;
-          }
-        } else if (imageUrl) {
-          cardUrl = imageUrl;
-          thumbnailUrl = imageUrl;
+      // Upload main content
+      if (cardType === 'image' && imageFile) {
+        const fileName = `cards/${user.id}/${Date.now()}.${imageFile.name.split('.').pop()}`;
+        const { error } = await supabase.storage.from('thumbnails').upload(fileName, imageFile);
+        if (!error) {
+          const { data } = supabase.storage.from('thumbnails').getPublicUrl(fileName);
+          cardUrl = data.publicUrl;
+          thumbnailUrl = data.publicUrl;
+        }
+      } else if (cardType === 'image' && imageUrl) {
+        cardUrl = imageUrl;
+        thumbnailUrl = imageUrl;
+      } else if (cardType === 'docs' && docsFile) {
+        const fileName = `docs/${user.id}/${Date.now()}.${docsFile.name.split('.').pop()}`;
+        const { error } = await supabase.storage.from('thumbnails').upload(fileName, docsFile);
+        if (!error) {
+          const { data } = supabase.storage.from('thumbnails').getPublicUrl(fileName);
+          cardUrl = data.publicUrl;
         }
       }
 
-      // Handle docs upload
-      if (cardType === 'docs' && docsFile) {
-        const fileExt = docsFile.name.split('.').pop();
-        const fileName = `docs/${user.id}/${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from('thumbnails')
-          .upload(fileName, docsFile);
-
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('thumbnails')
-            .getPublicUrl(fileName);
-          cardUrl = publicUrl;
+      // Upload Cover Image (Override)
+      if (coverImageFile) {
+        const fileName = `covers/${user.id}/${Date.now()}_cover.${coverImageFile.name.split('.').pop()}`;
+        const { error } = await supabase.storage.from('thumbnails').upload(fileName, coverImageFile);
+        if (!error) {
+          const { data } = supabase.storage.from('thumbnails').getPublicUrl(fileName);
+          thumbnailUrl = data.publicUrl;
         }
+      } else if (cardType === 'link' && coverImagePreview && coverImagePreview.startsWith('http')) {
+        thumbnailUrl = coverImagePreview;
       }
 
-      // Determine source
-      const isFromExtension = !!(initialUrl || initialFileData);
       const id = selectedCollectionId || selectedStackId;
-      const cardSource = isFromExtension 
-        ? 'extension' 
-        : (id ? 'collection' : 'manual');
+      // If collection selected, visibility is determined by collection.
+      // If standalone, we use the selected visibility (public only allowed for stackers).
+      // Note: 'unlisted' isn't supported for standalone cards yet, defaulting to private.
+      const isPublic = visibility === 'public'; 
+      const shouldBePublic = id ? undefined : (isStacker ? isPublic : false);
 
-      // Create card (standalone or with collection)
       const response = await fetch('/api/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -356,31 +344,23 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
           description: description.trim() || undefined,
           thumbnail_url: thumbnailUrl || undefined,
           collection_id: selectedCollectionId || undefined,
-          stack_id: selectedStackId || undefined, // Legacy support
-          is_public: true, // Standalone cards are public by default
-          source: cardSource,
+          stack_id: selectedStackId || undefined,
+          is_public: shouldBePublic,
+          source: id ? 'collection' : 'manual',
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to add card');
+        const err = await response.json();
+        setError(err.error || 'Failed to add card');
         setIsLoading(false);
         return;
       }
 
       const cardData = await response.json();
-      
-      // Track analytics
       if (cardData.card) {
-        // Check if this is from extension (has initialUrl or initialFileData)
-        const isFromExtension = !!(initialUrl || initialFileData);
         const id = selectedCollectionId || selectedStackId || '';
-        if (isFromExtension) {
-          trackEvent.extensionSave(user.id, cardData.card.id, id, cardType || 'link');
-        } else {
-          trackEvent.addCard(user.id, cardData.card.id, id, cardType || 'link');
-        }
+        trackEvent.addCard(user.id, cardData.card.id, id, (cardType || 'link') as any);
       }
 
       handleClose();
@@ -397,94 +377,115 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
     setUrl('');
     setTitle('');
     setDescription('');
-    titleRef.current = '';
-    descriptionRef.current = '';
-    metadataFetchUrlRef.current = '';
     setImageFile(null);
     setImagePreview(null);
     setImageUrl('');
     setDocsFile(null);
+    setCoverImageFile(null);
+    setCoverImagePreview(null);
+    setSelectedCollectionId('');
     setSelectedStackId('');
     setError('');
     setIsLoading(false);
-    setIsDraggingImage(false);
-    setIsDraggingDocs(false);
+    setVisibility('private');
     onClose();
   };
 
   const handleBack = () => {
-    if (step === 'stack') {
-      setStep('details');
-    } else if (step === 'details') {
-      setStep('type');
-      setCardType(null);
-    }
+    if (step === 'stack') setStep('optional');
+    else if (step === 'optional') setStep('details');
+    else if (step === 'details') setStep('type');
     setError('');
   };
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="md">
       <div className="relative overflow-hidden">
-        {/* Step 1: Card Type Selection */}
         {step === 'type' && (
-          <div className="transition-transform duration-300 ease-in-out">
+          <div className="transition-transform duration-300">
             <CardTypeSelector onSelect={handleCardTypeSelect} />
           </div>
         )}
 
-        {/* Step 2: Card Details */}
         {step === 'details' && cardType && (
-          <div key={`card-details-wrapper-${cardType}`} className="transition-transform duration-300 ease-in-out">
+          <div className="transition-transform duration-300">
             <CardDetailsStep
-              key={`card-details-${cardType}`}
               cardType={cardType}
               url={url}
-              onUrlChange={handleUrlChange}
+              onUrlChange={setUrl}
               title={title}
-              onTitleChange={(value) => {
-                setTitle(value);
-                titleRef.current = value;
-              }}
+              onTitleChange={(val) => { setTitle(val); titleRef.current = val; }}
               description={description}
-              onDescriptionChange={(value) => {
-                setDescription(value);
-                descriptionRef.current = value;
-              }}
+              onDescriptionChange={(val) => { setDescription(val); descriptionRef.current = val; }}
               imageFile={imageFile}
               imagePreview={imagePreview}
               imageUrl={imageUrl}
               onImageUrlChange={setImageUrl}
               isDraggingImage={isDraggingImage}
-              onImageDragOver={(e) => handleDragOver(e, 'image')}
-              onImageDragLeave={(e) => handleDragLeave(e, 'image')}
-              onImageDrop={(e) => handleDrop(e, 'image')}
-              onImageChange={handleImageChange}
+              onImageDragOver={(e) => { e.preventDefault(); setIsDraggingImage(true); }}
+              onImageDragLeave={(e) => { e.preventDefault(); setIsDraggingImage(false); }}
+              onImageDrop={(e) => {
+                e.preventDefault();
+                setIsDraggingImage(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) handleFileSelect(file, 'image');
+              }}
+              onImageChange={(e) => handleFileSelect(e.target.files?.[0]!, 'image')}
               docsFile={docsFile}
               isDraggingDocs={isDraggingDocs}
-              onDocsDragOver={(e) => handleDragOver(e, 'docs')}
-              onDocsDragLeave={(e) => handleDragLeave(e, 'docs')}
-              onDocsDrop={(e) => handleDrop(e, 'docs')}
-              onDocsChange={handleDocsChange}
+              onDocsDragOver={(e) => { e.preventDefault(); setIsDraggingDocs(true); }}
+              onDocsDragLeave={(e) => { e.preventDefault(); setIsDraggingDocs(false); }}
+              onDocsDrop={(e) => {
+                e.preventDefault();
+                setIsDraggingDocs(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) handleFileSelect(file, 'docs');
+              }}
+              onDocsChange={(e) => handleFileSelect(e.target.files?.[0]!, 'docs')}
               isFetchingMetadata={isFetchingMetadata}
               error={error}
               isLoading={isLoading}
               onBack={handleBack}
               onNext={handleDetailsNext}
+              // Pass fetch for manual trigger
+              onFetchMetadata={() => fetchMetadata(url)}
+              // Props not needed for this step anymore, handled in step 2
+              isPublic={false} 
+              onIsPublicChange={() => {}}
+              canMakePublic={false}
             />
           </div>
         )}
 
-        {/* Step 3: Stack Selection */}
+        {step === 'optional' && (
+          <div className="transition-transform duration-300">
+            <OptionalDetailsStep
+              visibility={visibility}
+              onVisibilityChange={setVisibility}
+              coverImage={coverImageFile}
+              coverImagePreview={coverImagePreview}
+              isDragging={isDraggingCover}
+              onDragOver={(e) => { e.preventDefault(); setIsDraggingCover(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setIsDraggingCover(false); }}
+              onDrop={handleCoverDrop}
+              onImageChange={handleCoverImageChange}
+              error={error}
+              isLoading={isLoading}
+              onBack={handleBack}
+              submitLabel="Continue"
+              onSubmit={handleOptionalNext}
+              showUnlisted={false} // Cards typically just Public/Private for now
+            />
+          </div>
+        )}
+
         {step === 'stack' && (
-          <div className="transition-transform duration-300 ease-in-out">
+          <div className="transition-transform duration-300">
             <StackSelector
               collections={collections}
               selectedCollectionId={selectedCollectionId}
               selectedStackId={selectedStackId}
-              onSelect={(id) => {
-                setSelectedCollectionId(id);
-                setSelectedStackId(id); // Legacy support
-              }}
+              onSelect={(id) => { setSelectedCollectionId(id); setSelectedStackId(id); }}
               onCreateNew={() => setIsCreateCollectionModalOpen(true)}
               onBack={handleBack}
               onSubmit={handleSubmit}
@@ -495,20 +496,29 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
         )}
       </div>
 
-      {/* Create Collection Modal */}
       <CreateCollectionModal
         isOpen={isCreateCollectionModalOpen}
         onClose={() => setIsCreateCollectionModalOpen(false)}
         fromCardCreation={true}
-        onCollectionCreated={(collectionId) => {
-          setSelectedCollectionId(collectionId);
-          setSelectedStackId(collectionId); // Legacy support
+        onCollectionCreated={(id) => {
+          setSelectedCollectionId(id);
+          setSelectedStackId(id);
           setIsCreateCollectionModalOpen(false);
-          setTimeout(() => {
-            handleSubmit();
-          }, 100);
+        }}
+      />
+
+      <BecomeStackerModal
+        isOpen={isBecomeStackerModalOpen}
+        onClose={() => setIsBecomeStackerModalOpen(false)}
+        onSuccess={() => {
+          setIsStacker(true);
+          setIsBecomeStackerModalOpen(false);
         }}
       />
     </Modal>
   );
+}
+
+function setStacks(arg0: { id: any; title: any; description: any; cover_image_url: any; }[]) {
+  throw new Error('Function not implemented.');
 }

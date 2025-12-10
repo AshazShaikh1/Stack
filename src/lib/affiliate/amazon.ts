@@ -58,7 +58,7 @@ export function isAmazonLink(url: string): boolean {
       pathname.includes('/d/') ||
       pathname.match(/^\/[a-z]{2}\/dp\//); // Country-specific product pages like /us/dp/
     
-    return isProductPage;
+    return !!isProductPage;
   } catch {
     return false;
   }

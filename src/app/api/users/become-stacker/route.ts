@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     if (short_bio) {
       updateData.metadata = {
-        ...(userProfile?.metadata || {}),
+        ...(userProfile as any)?.metadata || {},
         short_bio: short_bio.trim(),
       };
     }

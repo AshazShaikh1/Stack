@@ -1,18 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/api';
-import { createServiceClient } from '@/lib/supabase/api-service';
-import { rateLimiters, checkRateLimit, getRateLimitIdentifier, getIpAddress } from '@/lib/rate-limit';
-import { checkUserCardLimit } from '@/lib/monitoring/alerts';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/api";
+import { createServiceClient } from "@/lib/supabase/api-service";
+import {
+  rateLimiters,
+  checkRateLimit,
+  getRateLimitIdentifier,
+  getIpAddress,
+} from "@/lib/rate-limit";
+import { checkUserCardLimit } from "@/lib/monitoring/alerts";
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient(request);
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (!user || authError) {
-      console.error('Auth error:', authError);
+      console.error("Auth error:", authError);
       return NextResponse.json(
-        { error: 'Unauthorized - Please log in again' },
+        { error: "Unauthorized - Please log in again" },
         { status: 401 }
       );
     }
@@ -20,153 +28,145 @@ export async function POST(request: NextRequest) {
     // Rate limiting: 20 cards/day per user (PRD requirement)
     const ipAddress = getIpAddress(request);
     const identifier = getRateLimitIdentifier(user.id, ipAddress);
-    const rateLimitResult = await checkRateLimit(rateLimiters.cards, identifier);
+    const rateLimitResult = await checkRateLimit(
+      rateLimiters.cards,
+      identifier
+    );
 
     if (!rateLimitResult.success) {
       return NextResponse.json(
-        { 
-          error: 'Rate limit exceeded. You can create up to 20 cards per day.',
+        {
+          error: "Rate limit exceeded. You can create up to 20 cards per day.",
           limit: rateLimitResult.limit,
           remaining: rateLimitResult.remaining,
           reset: rateLimitResult.reset,
         },
-        { 
+        {
           status: 429,
           headers: {
-            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
-            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
-            'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+            "X-RateLimit-Limit": rateLimitResult.limit.toString(),
+            "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+            "X-RateLimit-Reset": rateLimitResult.reset.toString(),
           },
         }
       );
     }
 
     // Check for monitoring alerts (cards per user)
-    // This runs asynchronously and doesn't block the request
-    checkUserCardLimit(user.id, supabase).catch(err => {
-      console.error('Error checking user card limit:', err);
+    checkUserCardLimit(user.id, supabase).catch((err) => {
+      console.error("Error checking user card limit:", err);
     });
 
-    // Use service client for card creation to bypass RLS if needed
-    // This ensures card creation works even if RLS policy has issues
+    // Use service client for operations that might bypass RLS (finding duplicates)
     const serviceClient = createServiceClient();
 
-    const { url, title, description, thumbnail_url, collection_id, stack_id, is_public, source } = await request.json();
+    const {
+      url,
+      title,
+      description,
+      thumbnail_url,
+      collection_id,
+      stack_id,
+      is_public,
+      source,
+    } = await request.json();
 
     if (!url) {
-      return NextResponse.json(
-        { error: 'URL is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
-    // Determine source if not provided
+    // Determine target collection ID (handling legacy stack_id)
     const id = collection_id || stack_id;
-    const attributionSource = source || (id ? 'collection' : 'manual');
+    const attributionSource = source || (id ? "collection" : "manual");
 
-    // Check if user is a stacqer/admin (can publish standalone public cards)
+    // Check if user is a stacqer/admin
     const { data: userProfile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
       .single();
-    
-    const isStacker = userProfile?.role === 'stacker' || userProfile?.role === 'admin';
-    
-    // Determine card visibility based on user role and collection visibility
+
+    const isStacker =
+      userProfile?.role === "stacker" || userProfile?.role === "admin";
+
+    // Determine card visibility
     let cardIsPublic = false;
-    
+
     if (id) {
-      // Card is being added to a collection/stack - check collection visibility
+      // Check collection visibility
+      // NOTE: We query 'collections' table even for legacy stack_id
       const { data: collection } = await supabase
-        .from('collections')
-        .select('is_public, owner_id')
-        .eq('id', id)
+        .from("collections")
+        .select("is_public, owner_id")
+        .eq("id", id)
         .maybeSingle();
-      
-      // Fallback to stacks table if not found in collections (legacy support)
-      let stackData = null;
-      if (!collection) {
-        const { data: stack } = await supabase
-          .from('stacks')
-          .select('is_public, owner_id')
-          .eq('id', id)
-          .maybeSingle();
-        stackData = stack;
-      }
-      
-      const targetCollection = collection || stackData;
-      
-      if (targetCollection) {
-        // Card visibility matches collection visibility
-        cardIsPublic = targetCollection.is_public === true;
+
+      if (collection) {
+        cardIsPublic = collection.is_public === true;
       } else {
-        // Collection not found - default to private for safety
         cardIsPublic = false;
       }
     } else {
-      // Standalone card (not in a collection)
-      // Only stacqers can create standalone public cards
+      // Standalone card logic
       if (isStacker) {
-        // Stacqers can set is_public as they wish
         cardIsPublic = is_public !== undefined ? is_public : false;
       } else {
-        // Regular users cannot create standalone public cards
         cardIsPublic = false;
-        
-        // Warn if they tried to set it to public
         if (is_public === true) {
-          console.warn(`User ${user.id} attempted to create standalone public card but is not a stacqer`);
+          console.warn(
+            `User ${user.id} attempted to create standalone public card but is not a stacqer`
+          );
         }
       }
     }
 
-    // Canonicalize URL using normalize-url library
-    const { canonicalizeUrl } = await import('@/lib/metadata/extractor');
+    // Canonicalize URL
+    const { canonicalizeUrl } = await import("@/lib/metadata/extractor");
     const normalizedUrl = canonicalizeUrl(url);
-    
-    // Process Amazon affiliate links in the background (async, non-blocking)
-    // This function will be called after card is created
-    const processAffiliateLink = async (cardIdToUpdate: string, existingMetadata: any = {}) => {
+
+    // Process Amazon affiliate links (background function)
+    const processAffiliateLink = async (
+      cardIdToUpdate: string,
+      existingMetadata: any = {}
+    ) => {
       try {
-        const { isAmazonLink, addAmazonAffiliateTag, getAmazonAffiliateConfig } = await import('@/lib/affiliate/amazon');
+        const {
+          isAmazonLink,
+          addAmazonAffiliateTag,
+          getAmazonAffiliateConfig,
+        } = await import("@/lib/affiliate/amazon");
         const config = getAmazonAffiliateConfig();
-        
+
         if (config && isAmazonLink(normalizedUrl)) {
           const affiliateUrl = addAmazonAffiliateTag(normalizedUrl, config);
-          
-          // Update the card with affiliate URL if it was created and different
+
           if (affiliateUrl && affiliateUrl !== normalizedUrl) {
-            await serviceClient
-              .from('cards')
-              .update({ 
-                metadata: { 
-                  ...existingMetadata,
-                  affiliate_url: affiliateUrl,
-                  is_amazon_product: true,
-                } 
-              })
-              .eq('id', cardIdToUpdate)
-              .then(() => {
-                // Silently succeed - this is background processing
-              })
-              .catch(() => {
-                // Silently fail - don't log to avoid noise
-                // Affiliate link processing is optional
-              });
+            try {
+              await serviceClient
+                .from("cards")
+                .update({
+                  metadata: {
+                    ...existingMetadata,
+                    affiliate_url: affiliateUrl,
+                    is_amazon_product: true,
+                  },
+                })
+                .eq("id", cardIdToUpdate);
+            } catch (error) {
+              // Silently fail
+            }
           }
         }
       } catch (error) {
-        // Silently fail - affiliate processing is optional and shouldn't block card creation
+        // Silently fail
       }
     };
 
-    // Check if card already exists, use INSERT ... ON CONFLICT pattern
-    const domain = new URL(normalizedUrl).hostname.replace('www.', '');
-    
+    const domain = new URL(normalizedUrl).hostname.replace("www.", "");
+
     // Insert or get existing card
     const { data: card, error: cardError } = await serviceClient
-      .from('cards')
+      .from("cards")
       .insert({
         canonical_url: normalizedUrl,
         title: title || null,
@@ -174,95 +174,81 @@ export async function POST(request: NextRequest) {
         thumbnail_url: thumbnail_url || null,
         domain,
         created_by: user.id,
-        status: 'active',
+        status: "active",
         is_public: cardIsPublic,
-        metadata: {}, // Initialize metadata for affiliate URL storage
+        metadata: {},
       })
       .select()
       .single();
 
     let cardId: string;
-    
+
     if (cardError) {
       // If conflict (duplicate canonical_url), fetch existing card
-      if (cardError.code === '23505') {
-        const { data: existingCard } = await supabase
-          .from('cards')
-          .select('id, metadata')
-          .eq('canonical_url', normalizedUrl)
+      if (cardError.code === "23505") {
+        // FIX: Use serviceClient to find the card to bypass RLS visibility checks
+        const { data: existingCard } = await serviceClient
+          .from("cards")
+          .select("id, metadata")
+          .eq("canonical_url", normalizedUrl)
           .single();
-        
+
         if (existingCard) {
           cardId = existingCard.id;
-          // Update affiliate link for existing card if needed (background)
           processAffiliateLink(cardId, existingCard.metadata || {});
         } else {
           return NextResponse.json(
-            { error: 'Failed to create or find card' },
+            { error: "Failed to create or find card" },
             { status: 400 }
           );
         }
       } else {
-        console.error('Card creation error details:', {
-          message: cardError.message,
-          details: cardError.details,
-          hint: cardError.hint,
-          code: cardError.code,
-          user_id: user.id,
-        });
+        console.error("Card creation error:", cardError);
         return NextResponse.json(
-          { 
-            error: cardError.message || 'Failed to create card',
-            hint: 'Make sure you have run migration 026_stackers_and_standalone_cards.sql in Supabase'
-          },
+          { error: cardError.message || "Failed to create card" },
           { status: 400 }
         );
       }
     } else {
       cardId = card.id;
-      // Process affiliate link for newly created card (background)
       processAffiliateLink(cardId, card.metadata || {});
     }
 
-    // Create card attribution (always)
+    // Create attribution
     const { error: attributionError } = await serviceClient
-      .from('card_attributions')
+      .from("card_attributions")
       .insert({
         card_id: cardId,
         user_id: user.id,
         source: attributionSource,
-        collection_id: collection_id || null,
-        stack_id: stack_id || null, // Legacy support
+        collection_id: id || null, // Map to collection_id
       });
 
-    if (attributionError && attributionError.code !== '23505') { // Ignore duplicate attribution errors
-      console.error('Attribution creation error:', attributionError);
-      // Don't fail the request if attribution fails, but log it
+    if (attributionError && attributionError.code !== "23505") {
+      console.error("Attribution creation error:", attributionError);
     }
 
-    // Add card to collection if collection_id provided
-    if (collection_id || stack_id) {
-      const targetId = collection_id || stack_id;
-      const tableName = collection_id ? 'collection_cards' : 'stack_cards';
-      const idField = collection_id ? 'collection_id' : 'stack_id';
-      
+    // Link card to collection
+    if (id) {
+      // Always use 'collection_cards' table (legacy 'stack_cards' is deprecated)
+      const tableName = "collection_cards";
+      const idField = "collection_id";
+
       const { data: existingMapping } = await serviceClient
         .from(tableName)
-        .select('id')
-        .eq(idField, targetId)
-        .eq('card_id', cardId)
+        .select("id")
+        .eq(idField, id)
+        .eq("card_id", cardId)
         .maybeSingle();
 
       if (!existingMapping) {
-        const insertData: any = {
-          [idField]: targetId,
-          card_id: cardId,
-          added_by: user.id,
-        };
-        
         const { error: mappingError } = await serviceClient
           .from(tableName)
-          .insert(insertData);
+          .insert({
+            [idField]: id,
+            card_id: cardId,
+            added_by: user.id,
+          });
 
         if (mappingError) {
           return NextResponse.json(
@@ -273,33 +259,37 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Trigger metadata worker asynchronously (don't wait for it)
-    // This ensures cards get full metadata processing in the background
-    if (!cardError || cardError.code === '23505') {
-      // Trigger for new cards or if metadata might be missing
-      fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/workers/fetch-metadata`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(process.env.WORKER_API_KEY && { 'x-api-key': process.env.WORKER_API_KEY }),
-        },
-        body: JSON.stringify({ card_id: cardId }),
-      }).catch(err => {
-        // Silently fail - worker will pick it up later
-        console.error('Failed to trigger metadata worker:', err);
+    // Trigger metadata worker
+    if (!cardError || cardError.code === "23505") {
+      fetch(
+        `${
+          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+        }/api/workers/fetch-metadata`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(process.env.WORKER_API_KEY && {
+              "x-api-key": process.env.WORKER_API_KEY,
+            }),
+          },
+          body: JSON.stringify({ card_id: cardId }),
+        }
+      ).catch((err) => {
+        console.error("Failed to trigger metadata worker:", err);
       });
     }
 
-    // Fetch card with attributions for response
+    // Return success
     const { data: cardWithAttributions } = await supabase
-      .from('cards')
+      .from("cards")
       .select(`
         *,
         attributions:card_attributions (
           id,
           user_id,
           source,
-          stack_id,
+          collection_id,
           created_at,
           user:users!card_attributions_user_id_fkey (
             id,
@@ -309,20 +299,19 @@ export async function POST(request: NextRequest) {
           )
         )
       `)
-      .eq('id', cardId)
+      .eq("id", cardId)
       .single();
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       card: cardWithAttributions,
-      card_id: cardId 
+      card_id: cardId,
     });
   } catch (error) {
-    console.error('Error in cards route:', error);
+    console.error("Error in cards route:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
-

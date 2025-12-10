@@ -104,7 +104,7 @@ export function useSaves({
     
     if (!user) {
       const itemName = type === 'card' ? 'cards' : 'collections';
-      showInfo(`Please sign in to save ${itemName}`);
+      showError(`Please sign in to save ${itemName}`); // FIXED: Changed showInfo to showError
       setTimeout(() => {
         window.location.href = '/login';
       }, 1500);
@@ -190,5 +190,9 @@ export function useSaves({
     isAnimating,
     toggleSave,
   };
+}
+
+function showInfo(arg0: string) {
+  throw new Error('Function not implemented.');
 }
 

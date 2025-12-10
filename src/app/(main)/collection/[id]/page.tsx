@@ -10,6 +10,7 @@ import { Suspense, lazy } from 'react';
 import { CommentSkeleton } from '@/components/ui/Skeleton';
 import { cached } from '@/lib/redis';
 import { getCacheKey, CACHE_TTL } from '@/lib/cache/supabase-cache';
+import { EmptyCardsState } from '@/components/ui/EmptyState';
 
 // Enable ISR with 60 second revalidation
 export const revalidate = 60;

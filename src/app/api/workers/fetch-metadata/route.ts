@@ -1,14 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase/api-service';
-import { fetchMetadata, canonicalizeUrl } from '@/lib/metadata/extractor';
-import { uploadThumbnail } from '@/lib/metadata/thumbnail';
+import { NextRequest, NextResponse } from "next/server";
+import { createServiceClient } from "@/lib/supabase/api-service";
+import { fetchMetadata } from "@/lib/metadata/extractor";
+import { uploadThumbnail } from "@/lib/metadata/thumbnail";
 
 /**
  * POST /api/workers/fetch-metadata
  * Metadata fetcher worker
  * Processes metadata extraction jobs for cards
- * 
- * Body:
+ * * Body:
  * - card_id: string (optional) - Process specific card
  * - url: string (optional) - Process specific URL
  * - limit: number (optional) - Number of jobs to process (default: 10)
@@ -16,14 +15,11 @@ import { uploadThumbnail } from '@/lib/metadata/thumbnail';
 export async function POST(request: NextRequest) {
   try {
     // Optional: Add API key authentication for security
-    const apiKey = request.headers.get('x-api-key');
+    const apiKey = request.headers.get("x-api-key");
     const expectedApiKey = process.env.WORKER_API_KEY;
-    
+
     if (expectedApiKey && apiKey !== expectedApiKey) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const supabase = createServiceClient();
@@ -34,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (card_id) {
       return await processCard(supabase, card_id);
     }
-    
+
     if (url) {
       return await processUrl(supabase, url);
     }
@@ -42,17 +38,19 @@ export async function POST(request: NextRequest) {
     // Otherwise, process a batch of pending cards
     // Get cards that need metadata (no title/description or missing thumbnail)
     const { data: cards, error: cardsError } = await supabase
-      .from('cards')
-      .select('id, canonical_url, title, description, thumbnail_url, created_by')
-      .or('title.is.null,description.is.null,thumbnail_url.is.null')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
+      .from("cards")
+      .select(
+        "id, canonical_url, title, description, thumbnail_url, created_by"
+      )
+      .or("title.is.null,description.is.null,thumbnail_url.is.null")
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
       .limit(limit);
 
     if (cardsError) {
-      console.error('Error fetching cards:', cardsError);
+      console.error("Error fetching cards:", cardsError);
       return NextResponse.json(
-        { error: 'Failed to fetch cards' },
+        { error: "Failed to fetch cards" },
         { status: 500 }
       );
     }
@@ -61,7 +59,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         processed: 0,
-        message: 'No cards need metadata processing',
+        message: "No cards need metadata processing",
       });
     }
 
@@ -82,72 +80,80 @@ export async function POST(request: NextRequest) {
         }
 
         const metadata = await fetchMetadata(card.canonical_url);
-        
+
         // Update card with metadata
         const updateData: any = {};
-        
+
         if (!card.title && metadata.title) {
           updateData.title = metadata.title;
         }
-        
+
         if (!card.description && metadata.description) {
           updateData.description = metadata.description;
         }
-        
+
         // Update domain if needed
         if (metadata.domain) {
           updateData.domain = metadata.domain;
         }
-        
+
         // Update canonical URL if it changed (shouldn't happen, but just in case)
         if (metadata.canonicalUrl !== card.canonical_url) {
           updateData.canonical_url = metadata.canonicalUrl;
         }
-        
+
         // Store metadata in metadata JSONB field
+        // Cast card to any to access metadata property which might not be on the default type
+        const existingMetadata = (card as any).metadata || {};
         updateData.metadata = {
           ...metadata.metadata,
-          ...(card.metadata || {}), // Preserve existing metadata (like affiliate_url)
+          ...existingMetadata, // Preserve existing metadata (like affiliate_url)
         };
-        
+
         // Process Amazon affiliate links in the background (non-blocking)
         // This ensures metadata processing doesn't slow down
         const processAffiliateLink = async () => {
           try {
-            const { isAmazonLink, addAmazonAffiliateTag, getAmazonAffiliateConfig } = await import('@/lib/affiliate/amazon');
+            const {
+              isAmazonLink,
+              addAmazonAffiliateTag,
+              getAmazonAffiliateConfig,
+            } = await import("@/lib/affiliate/amazon");
             const config = getAmazonAffiliateConfig();
-            
+
             if (config && isAmazonLink(card.canonical_url)) {
-              const affiliateUrl = addAmazonAffiliateTag(card.canonical_url, config);
-              
+              const affiliateUrl = addAmazonAffiliateTag(
+                card.canonical_url,
+                config
+              );
+
               if (affiliateUrl && affiliateUrl !== card.canonical_url) {
                 // Update with affiliate URL
-                await supabase
-                  .from('cards')
-                  .update({ 
-                    metadata: { 
-                      ...updateData.metadata,
-                      affiliate_url: affiliateUrl,
-                      is_amazon_product: true,
-                    } 
-                  })
-                  .eq('id', card.id)
-                  .then(() => {
-                    // Silently succeed
-                  })
-                  .catch(() => {
-                    // Silently fail
-                  });
+                // Use try/catch instead of .then().catch() to avoid TS PromiseLike errors
+                try {
+                  await supabase
+                    .from("cards")
+                    .update({
+                      metadata: {
+                        ...updateData.metadata,
+                        affiliate_url: affiliateUrl,
+                        is_amazon_product: true,
+                      },
+                    })
+                    .eq("id", card.id);
+                } catch {
+                  // Silently fail
+                }
               }
             }
           } catch (error) {
             // Silently fail - affiliate processing is optional
           }
         };
-        
+
         // Start affiliate processing but don't wait
         processAffiliateLink();
-        
+
         // Upload thumbnail if we have one and card doesn't
         if (metadata.thumbnailUrl && !card.thumbnail_url && card.created_by) {
           const uploadedThumbnail = await uploadThumbnail(
@@ -155,7 +161,7 @@ export async function POST(request: NextRequest) {
             card.id,
             card.created_by
           );
-          
+
           if (uploadedThumbnail) {
             updateData.thumbnail_url = uploadedThumbnail;
           }
@@ -163,23 +169,25 @@ export async function POST(request: NextRequest) {
           // Use external thumbnail URL if upload fails
           updateData.thumbnail_url = metadata.thumbnailUrl;
         }
-        
+
         const { error: updateError } = await supabase
-          .from('cards')
+          .from("cards")
           .update(updateData)
-          .eq('id', card.id);
-        
+          .eq("id", card.id);
+
         if (updateError) {
           throw updateError;
         }
-        
+
         results.succeeded++;
       } catch (error: any) {
         console.error(`Error processing card ${card.id}:`, error);
         results.failed++;
-        results.errors.push(`Card ${card.id}: ${error.message || 'Unknown error'}`);
+        results.errors.push(
+          `Card ${card.id}: ${error.message || "Unknown error"}`
+        );
       }
-      
+
       results.processed++;
     }
 
@@ -188,9 +196,9 @@ export async function POST(request: NextRequest) {
       ...results,
     });
   } catch (error: any) {
-    console.error('Error in metadata fetcher worker:', error);
+    console.error("Error in metadata fetcher worker:", error);
     return NextResponse.json(
-      { error: error.message || 'Metadata fetcher failed' },
+      { error: error.message || "Metadata fetcher failed" },
       { status: 500 }
     );
   }
@@ -201,35 +209,34 @@ export async function POST(request: NextRequest) {
  */
 async function processCard(supabase: any, cardId: string) {
   const { data: card, error: cardError } = await supabase
-    .from('cards')
-    .select('id, canonical_url, title, description, thumbnail_url, created_by')
-    .eq('id', cardId)
+    .from("cards")
+    .select(
+      "id, canonical_url, title, description, thumbnail_url, created_by, metadata"
+    )
+    .eq("id", cardId)
     .single();
 
   if (cardError || !card) {
-    return NextResponse.json(
-      { error: 'Card not found' },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Card not found" }, { status: 404 });
   }
 
   if (!card.canonical_url) {
-    return NextResponse.json(
-      { error: 'Card has no URL' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Card has no URL" }, { status: 400 });
   }
 
   try {
     const metadata = await fetchMetadata(card.canonical_url);
-    
+
     const updateData: any = {
       title: metadata.title || card.title,
       description: metadata.description || card.description,
       domain: metadata.domain,
-      metadata: metadata.metadata,
+      metadata: {
+        ...metadata.metadata,
+        ...(card.metadata || {}),
+      },
     };
-    
+
     // Upload thumbnail if we have one
     if (metadata.thumbnailUrl && card.created_by) {
       const uploadedThumbnail = await uploadThumbnail(
@@ -237,23 +244,23 @@ async function processCard(supabase: any, cardId: string) {
         card.id,
         card.created_by
       );
-      
+
       if (uploadedThumbnail) {
         updateData.thumbnail_url = uploadedThumbnail;
       } else {
         updateData.thumbnail_url = metadata.thumbnailUrl;
       }
     }
-    
+
     const { error: updateError } = await supabase
-      .from('cards')
+      .from("cards")
       .update(updateData)
-      .eq('id', card.id);
-    
+      .eq("id", card.id);
+
     if (updateError) {
       throw updateError;
     }
-    
+
     return NextResponse.json({
       success: true,
       card_id: card.id,
@@ -261,7 +268,7 @@ async function processCard(supabase: any, cardId: string) {
     });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Failed to process card' },
+      { error: error.message || "Failed to process card" },
       { status: 500 }
     );
   }
@@ -272,16 +279,19 @@ async function processCard(supabase: any, cardId: string) {
  */
 async function processUrl(supabase: any, url: string) {
   try {
+    // Import canonicalizeUrl here to avoid circular dependencies if it was in imports
+    const { canonicalizeUrl } = await import("@/lib/metadata/extractor");
+
     const metadata = await fetchMetadata(url);
     const canonicalUrl = canonicalizeUrl(url);
-    
+
     // Check if card already exists
     const { data: existingCard } = await supabase
-      .from('cards')
-      .select('id, canonical_url')
-      .eq('canonical_url', canonicalUrl)
+      .from("cards")
+      .select("id, canonical_url")
+      .eq("canonical_url", canonicalUrl)
       .maybeSingle();
-    
+
     return NextResponse.json({
       success: true,
       url,
@@ -291,9 +301,8 @@ async function processUrl(supabase: any, url: string) {
     });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Failed to process URL' },
+      { error: error.message || "Failed to process URL" },
       { status: 500 }
     );
   }
 }
-

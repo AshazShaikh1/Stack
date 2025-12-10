@@ -288,7 +288,7 @@ async function getCommentDepth(supabase: any, commentId: string): Promise<number
   let currentId: string | null = commentId;
 
   while (currentId && depth < 5) {
-    const { data: comment } = await supabase
+    const { data: comment }: { data: any, error: any } = await supabase
       .from('comments')
       .select('parent_id')
       .eq('id', currentId)

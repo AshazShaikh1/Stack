@@ -3,11 +3,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { Input } from '@/components/ui/Input';
 import { createClient } from '@/lib/supabase/client';
 
 interface ReportButtonProps {
-  targetType: 'stack' | 'card' | 'comment' | 'user';
+  targetType: 'stack' | 'card' | 'comment' | 'user' | 'collection';
   targetId: string;
   variant?: 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
@@ -19,6 +18,11 @@ export function ReportButton({ targetType, targetId, variant = 'ghost', size = '
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Logic to handle 'ghost' variant which might not be native to the UI component
+  const isGhost = variant === 'ghost';
+  const buttonVariant = isGhost ? 'outline' : variant; 
+  const ghostClasses = isGhost ? 'border-none shadow-none bg-transparent hover:bg-gray-100' : '';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,8 +77,9 @@ export function ReportButton({ targetType, targetId, variant = 'ghost', size = '
   return (
     <>
       <Button
-        variant={variant}
+        variant={buttonVariant}
         size={size}
+        className={ghostClasses}
         onClick={() => setIsOpen(true)}
       >
         🚩 Report
@@ -154,4 +159,3 @@ export function ReportButton({ targetType, targetId, variant = 'ghost', size = '
     </>
   );
 }
-

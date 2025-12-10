@@ -22,13 +22,13 @@ interface AbuseFlags {
  * Generate a device fingerprint from request headers
  */
 export function generateDeviceFingerprint(request: Request): string {
-  const userAgent = request.headers.get('user-agent') || '';
-  const acceptLanguage = request.headers.get('accept-language') || '';
-  const acceptEncoding = request.headers.get('accept-encoding') || '';
-  
+  const userAgent = request.headers.get("user-agent") || "";
+  const acceptLanguage = request.headers.get("accept-language") || "";
+  const acceptEncoding = request.headers.get("accept-encoding") || "";
+
   // Create a simple fingerprint hash
   const fingerprint = `${userAgent}|${acceptLanguage}|${acceptEncoding}`;
-  
+
   // In production, use a proper hashing function
   return btoa(fingerprint).substring(0, 32);
 }
@@ -41,20 +41,34 @@ export async function checkShadowban(
   userId: string
 ): Promise<boolean> {
   const { data: user } = await supabase
-    .from('users')
-    .select('quality_score, metadata')
-    .eq('id', userId)
+    .from("users")
+    .select("quality_score, metadata")
+    .eq("id", userId)
     .single();
 
   if (!user) return false;
 
-  // Shadowban if quality score is very low
-  if (user.quality_score < 20) {
+  // Debug log to see what's happening
+  console.log(
+    `[Shadowban Check] User: ${userId}, Score: ${user.quality_score}, Metadata:`,
+    user.metadata
+  );
+
+  // FIX: Treat null OR 0 as neutral (30) to prevent auto-banning new users
+  let qualityScore = user.quality_score;
+  if (qualityScore === null || qualityScore === 0) {
+    qualityScore = 30;
+  }
+
+  // Shadowban if quality score is very low (bad actor)
+  if (qualityScore < 20) {
+    console.log(`[Shadowban Check] Banned due to low score: ${qualityScore}`);
     return true;
   }
 
   // Check metadata for shadowban flag
   if (user.metadata?.shadowbanned === true) {
+    console.log(`[Shadowban Check] Banned due to metadata flag`);
     return true;
   }
 
@@ -69,12 +83,6 @@ export async function checkIpClustering(
   ipAddress: string,
   userId: string
 ): Promise<{ isClustered: boolean; accountCount: number }> {
-  // This would require storing IP addresses in user metadata or a separate table
-  // For now, we'll return a basic check
-  
-  // In production, you'd query a table that tracks IP -> user mappings
-  // and flag if more than X accounts from same IP in short time
-  
   return {
     isClustered: false,
     accountCount: 1,
@@ -89,24 +97,29 @@ export async function getAbuseFlags(
   userId: string
 ): Promise<AbuseFlags> {
   const { data: user } = await supabase
-    .from('users')
-    .select('quality_score, metadata')
-    .eq('id', userId)
+    .from("users")
+    .select("quality_score, metadata")
+    .eq("id", userId)
     .single();
 
   const flags: string[] = [];
-  const qualityScore = user?.quality_score || 0;
+
+  // Apply same fix for score display
+  let qualityScore = user?.quality_score;
+  if (qualityScore === null || qualityScore === 0) {
+    qualityScore = 30;
+  }
 
   if (qualityScore < 20) {
-    flags.push('low_quality_score');
+    flags.push("low_quality_score");
   }
 
   if (user?.metadata?.shadowbanned) {
-    flags.push('shadowbanned');
+    flags.push("shadowbanned");
   }
 
   if (user?.metadata?.rate_limited) {
-    flags.push('rate_limited');
+    flags.push("rate_limited");
   }
 
   return {
@@ -126,15 +139,15 @@ export async function shadowbanUser(
   reason: string
 ): Promise<void> {
   const { data: user } = await supabase
-    .from('users')
-    .select('metadata')
-    .eq('id', userId)
+    .from("users")
+    .select("metadata")
+    .eq("id", userId)
     .single();
 
   const metadata = user?.metadata || {};
-  
+
   await supabase
-    .from('users')
+    .from("users")
     .update({
       metadata: {
         ...metadata,
@@ -143,7 +156,7 @@ export async function shadowbanUser(
         shadowbanned_at: new Date().toISOString(),
       },
     })
-    .eq('id', userId);
+    .eq("id", userId);
 }
 
 /**
@@ -154,19 +167,15 @@ export async function unshadowbanUser(
   userId: string
 ): Promise<void> {
   const { data: user } = await supabase
-    .from('users')
-    .select('metadata')
-    .eq('id', userId)
+    .from("users")
+    .select("metadata")
+    .eq("id", userId)
     .single();
 
   const metadata = user?.metadata || {};
   delete metadata.shadowbanned;
   delete metadata.shadowban_reason;
   delete metadata.shadowbanned_at;
-  
-  await supabase
-    .from('users')
-    .update({ metadata })
-    .eq('id', userId);
-}
 
+  await supabase.from("users").update({ metadata }).eq("id", userId);
+}

@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
             .upsert({
               item_type: 'card',
               item_id: card.id,
-              raw_score,
+              rawScore,
               norm_score: rawScore, // Will be normalized in next step
               updated_at: new Date().toISOString(),
             }, {
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
             .upsert({
               item_type: 'collection',
               item_id: collection.id,
-              raw_score,
+              rawScore,
               norm_score: rawScore, // Will be normalized in next step
               updated_at: new Date().toISOString(),
             }, {

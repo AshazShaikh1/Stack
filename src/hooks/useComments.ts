@@ -116,7 +116,7 @@ export function useComments({ targetType, targetId }: UseCommentsOptions) {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user && data.comment) {
-        trackEvent.comment(user.id, targetType, targetId, data.comment.id);
+        trackEvent.comment(user.id, targetType as any, targetId, data.comment.id);
       }
       
       return data.comment;

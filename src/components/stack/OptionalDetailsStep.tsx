@@ -17,6 +17,11 @@ interface OptionalDetailsStepProps {
   error: string;
   isLoading: boolean;
   onBack: () => void;
+  // Optional submit button text (default: "Create Collection")
+  submitLabel?: string;
+  onSubmit?: () => void;
+  // Allow hiding specific visibility options if needed (e.g. cards might not support unlisted)
+  showUnlisted?: boolean;
 }
 
 export function OptionalDetailsStep({
@@ -32,10 +37,20 @@ export function OptionalDetailsStep({
   error,
   isLoading,
   onBack,
+  submitLabel = "Create Collection",
+  onSubmit,
+  showUnlisted = true,
 }: OptionalDetailsStepProps) {
+  
+  // Wrapper for FileUploadZone to match the prop signature if needed, 
+  // or just use FileUploadZone directly.
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onImageChange(e);
+  };
+
   return (
-    <div className="space-y-4 max-w-md mx-auto">
-      <div className="flex items-center gap-3 mb-4">
+    <div className="space-y-6 max-w-md mx-auto p-1">
+      <div className="flex items-center gap-3 mb-2">
         <button
           type="button"
           onClick={onBack}
@@ -49,129 +64,91 @@ export function OptionalDetailsStep({
         <h3 className="text-h2 font-semibold text-jet-dark">Optional Details</h3>
       </div>
 
+      {/* Visibility Section - Now at the Top */}
       <div>
-        <label className="block text-body font-medium text-jet-dark mb-2">
+        <label className="block text-body font-medium text-jet-dark mb-3">
           Visibility
         </label>
-        <div className="space-y-2">
-          <label className="flex items-center gap-3 cursor-pointer">
+        <div className="space-y-3">
+          <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${visibility === 'public' ? 'border-emerald bg-emerald/5' : 'border-gray-light hover:bg-gray-50'}`}>
             <input
               type="radio"
               name="visibility"
               value="public"
               checked={visibility === 'public'}
               onChange={(e) => onVisibilityChange(e.target.value as StackVisibility)}
-              className="w-4 h-4 text-jet"
+              className="mt-1 w-4 h-4 text-emerald focus:ring-emerald"
               disabled={isLoading}
             />
             <div>
               <div className="text-body font-medium text-jet-dark">Public</div>
-              <div className="text-small text-gray-muted">Anyone can view and discover this stack</div>
+              <div className="text-small text-gray-muted">Visible to everyone on Stacq. Discoverable in search and feed.</div>
             </div>
           </label>
-          <label className="flex items-center gap-3 cursor-pointer">
+          
+          <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${visibility === 'private' ? 'border-emerald bg-emerald/5' : 'border-gray-light hover:bg-gray-50'}`}>
             <input
               type="radio"
               name="visibility"
               value="private"
               checked={visibility === 'private'}
               onChange={(e) => onVisibilityChange(e.target.value as StackVisibility)}
-              className="w-4 h-4 text-jet"
+              className="mt-1 w-4 h-4 text-emerald focus:ring-emerald"
               disabled={isLoading}
             />
             <div>
               <div className="text-body font-medium text-jet-dark">Private</div>
-              <div className="text-small text-gray-muted">Only you can view this stack</div>
+              <div className="text-small text-gray-muted">Only you can view this content.</div>
             </div>
           </label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="radio"
-              name="visibility"
-              value="unlisted"
-              checked={visibility === 'unlisted'}
-              onChange={(e) => onVisibilityChange(e.target.value as StackVisibility)}
-              className="w-4 h-4 text-jet"
-              disabled={isLoading}
-            />
-            <div>
-              <div className="text-body font-medium text-jet-dark">Unlisted</div>
-              <div className="text-small text-gray-muted">Only people with the link can view</div>
-            </div>
-          </label>
+
+          {showUnlisted && (
+            <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${visibility === 'unlisted' ? 'border-emerald bg-emerald/5' : 'border-gray-light hover:bg-gray-50'}`}>
+              <input
+                type="radio"
+                name="visibility"
+                value="unlisted"
+                checked={visibility === 'unlisted'}
+                onChange={(e) => onVisibilityChange(e.target.value as StackVisibility)}
+                className="mt-1 w-4 h-4 text-emerald focus:ring-emerald"
+                disabled={isLoading}
+              />
+              <div>
+                <div className="text-body font-medium text-jet-dark">Unlisted</div>
+                <div className="text-small text-gray-muted">Only people with the link can view. Hidden from search.</div>
+              </div>
+            </label>
+          )}
         </div>
       </div>
 
+      {/* Cover Image Section - Now at the Bottom */}
       <div>
-        <label className="block text-body font-medium text-jet-dark mb-2">
-          Cover Image (optional)
-        </label>
-        <div
+        <div className="mb-2">
+          <label className="block text-body font-medium text-jet-dark">
+            Cover Image <span className="text-gray-muted font-normal text-sm">(optional)</span>
+          </label>
+          <p className="text-xs text-gray-muted mt-1">
+            {coverImagePreview ? 'This image will override any default metadata image.' : 'Upload a custom cover image.'}
+          </p>
+        </div>
+        
+        <FileUploadZone
+          type="image"
+          file={coverImage}
+          preview={coverImagePreview}
+          isDragging={isDragging}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
-          className={`relative w-full border-2 border-dashed rounded-lg transition-all ${
-            isDragging
-              ? 'border-jet bg-jet/5'
-              : 'border-gray-light hover:border-jet/50'
-          }`}
-        >
-          <input
-            type="file"
-            accept="image/*"
-            onChange={onImageChange}
-            className="hidden"
-            id="cover-image-upload"
-            disabled={isLoading}
-          />
-          <label
-            htmlFor="cover-image-upload"
-            className="flex flex-col items-center justify-center px-4 py-8 cursor-pointer"
-          >
-            {coverImagePreview ? (
-              <div className="w-full">
-                <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-light mb-3">
-                  <img src={coverImagePreview} alt="Preview" className="w-full h-full object-cover" />
-                </div>
-                <p className="text-center text-body text-jet-dark">
-                  {coverImage?.name}
-                </p>
-                <p className="text-center text-small text-gray-muted mt-1">
-                  Click or drag to change image
-                </p>
-              </div>
-            ) : (
-              <>
-                <svg
-                  className="w-12 h-12 text-gray-muted mb-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
-                <p className="text-body text-jet-dark font-medium mb-1">
-                  Drag and drop an image here
-                </p>
-                <p className="text-small text-gray-muted mb-3">
-                  or click to browse
-                </p>
-                <p className="text-xs text-gray-muted">
-                  Files are saved to: Supabase Storage → cover-images bucket → {`{user_id}`}/
-                </p>
-              </>
-            )}
-          </label>
-        </div>
+          onFileChange={handleFileChange}
+          disabled={isLoading}
+          label="Click or drag to replace cover image"
+        />
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-input text-small text-red-600">
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-small text-red-600">
           {error}
         </div>
       )}
@@ -189,11 +166,16 @@ export function OptionalDetailsStep({
           type="submit"
           variant="primary"
           isLoading={isLoading}
+          onClick={(e) => {
+            if (onSubmit) {
+              e.preventDefault();
+              onSubmit();
+            }
+          }}
         >
-          Create Collection
+          {submitLabel}
         </Button>
       </div>
     </div>
   );
 }
-

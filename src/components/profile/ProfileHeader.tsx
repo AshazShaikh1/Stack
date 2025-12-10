@@ -112,7 +112,7 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
               currentAvatarUrl={avatarUrl}
               displayName={profile.display_name}
               userId={profile.id}
-              onUpdate={setAvatarUrl}
+              onUpdate={(newUrl) => setAvatarUrl(newUrl || undefined)}
             />
           ) : avatarUrl ? (
             <Image

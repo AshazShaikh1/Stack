@@ -34,6 +34,11 @@ interface CardDetailsStepProps {
   isLoading: boolean;
   onBack: () => void;
   onNext: () => void;
+  isPublic: boolean;
+  onIsPublicChange: (isPublic: boolean) => void;
+  canMakePublic: boolean;
+  // FIXED: Added this missing prop definition
+  onFetchMetadata: () => void;
 }
 
 export const CardDetailsStep = memo(function CardDetailsStep({
@@ -64,6 +69,10 @@ export const CardDetailsStep = memo(function CardDetailsStep({
   isLoading,
   onBack,
   onNext,
+  isPublic,
+  onIsPublicChange,
+  canMakePublic,
+  onFetchMetadata,
 }: CardDetailsStepProps) {
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descriptionInputRef = useRef<HTMLInputElement>(null);
@@ -78,11 +87,9 @@ export const CardDetailsStep = memo(function CardDetailsStep({
         : descriptionInputRef;
       
       if (inputRef.current && document.activeElement !== inputRef.current) {
-        // Use requestAnimationFrame to ensure DOM has updated
         requestAnimationFrame(() => {
           if (inputRef.current) {
             inputRef.current.focus();
-            // Restore cursor position
             if (cursorPositionRef.current > 0) {
               inputRef.current.setSelectionRange(
                 cursorPositionRef.current, 
@@ -95,16 +102,6 @@ export const CardDetailsStep = memo(function CardDetailsStep({
     }
   }, [title, description]);
 
-  const handleTitleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    focusedInputIdRef.current = 'card-title-input';
-    cursorPositionRef.current = e.target.selectionStart || 0;
-  };
-
-  const handleDescriptionFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    focusedInputIdRef.current = 'card-description-input';
-    cursorPositionRef.current = e.target.selectionStart || 0;
-  };
-
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     cursorPositionRef.current = e.target.selectionStart || e.target.value.length;
     onTitleChange(e.target.value);
@@ -113,18 +110,6 @@ export const CardDetailsStep = memo(function CardDetailsStep({
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     cursorPositionRef.current = e.target.selectionStart || e.target.value.length;
     onDescriptionChange(e.target.value);
-  };
-
-  const handleTitleBlur = () => {
-    if (document.activeElement?.id !== 'card-title-input') {
-      focusedInputIdRef.current = null;
-    }
-  };
-
-  const handleDescriptionBlur = () => {
-    if (document.activeElement?.id !== 'card-description-input') {
-      focusedInputIdRef.current = null;
-    }
   };
 
   return (
@@ -143,6 +128,12 @@ export const CardDetailsStep = memo(function CardDetailsStep({
           onChange={(e) => onUrlChange(e.target.value)}
           required
           disabled={isLoading || isFetchingMetadata}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onFetchMetadata();
+            }
+          }}
         />
       )}
 
@@ -193,8 +184,13 @@ export const CardDetailsStep = memo(function CardDetailsStep({
         placeholder="Card title"
         value={title}
         onChange={handleTitleChange}
-        onFocus={handleTitleFocus}
-        onBlur={handleTitleBlur}
+        onFocus={(e) => {
+          focusedInputIdRef.current = 'card-title-input';
+          cursorPositionRef.current = e.target.selectionStart || 0;
+        }}
+        onBlur={() => {
+          if (document.activeElement?.id !== 'card-title-input') focusedInputIdRef.current = null;
+        }}
         ref={titleInputRef}
         required
         disabled={isLoading}
@@ -208,11 +204,33 @@ export const CardDetailsStep = memo(function CardDetailsStep({
         placeholder="Card description (optional)"
         value={description}
         onChange={handleDescriptionChange}
-        onFocus={handleDescriptionFocus}
-        onBlur={handleDescriptionBlur}
+        onFocus={(e) => {
+          focusedInputIdRef.current = 'card-description-input';
+          cursorPositionRef.current = e.target.selectionStart || 0;
+        }}
+        onBlur={() => {
+          if (document.activeElement?.id !== 'card-description-input') focusedInputIdRef.current = null;
+        }}
         ref={descriptionInputRef}
         disabled={isLoading}
       />
+
+      {/* Visibility Toggle - Only for Stacqers */}
+      {canMakePublic && (
+        <div className="flex items-center gap-2 py-2">
+          <input
+            type="checkbox"
+            id="is-public"
+            checked={isPublic}
+            onChange={(e) => onIsPublicChange(e.target.checked)}
+            className="w-4 h-4 text-emerald bg-white border-gray-300 rounded focus:ring-emerald cursor-pointer"
+            disabled={isLoading}
+          />
+          <label htmlFor="is-public" className="text-body text-jet-dark cursor-pointer select-none">
+            Make Public (Standalone)
+          </label>
+        </div>
+      )}
 
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-small text-red-600">
@@ -234,7 +252,7 @@ export const CardDetailsStep = memo(function CardDetailsStep({
           type="submit"
           variant="primary"
           className="flex-1"
-          disabled={isLoading}
+          disabled={isLoading || isFetchingMetadata}
         >
           Continue
         </Button>
@@ -242,4 +260,3 @@ export const CardDetailsStep = memo(function CardDetailsStep({
     </form>
   );
 });
-

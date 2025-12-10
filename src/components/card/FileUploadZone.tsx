@@ -12,6 +12,8 @@ interface FileUploadZoneProps {
   disabled?: boolean;
   imageUrl?: string;
   onImageUrlChange?: (url: string) => void;
+  // NEW: Added label prop
+  label?: string;
 }
 
 export function FileUploadZone({
@@ -26,10 +28,17 @@ export function FileUploadZone({
   disabled,
   imageUrl,
   onImageUrlChange,
+  label,
 }: FileUploadZoneProps) {
   const inputId = type === 'image' ? 'image-upload' : 'docs-upload';
   const accept = type === 'image' ? 'image/*' : '.pdf,.doc,.docx,.txt';
+  // Note: Storage path logic is usually handled in the parent when uploading, 
+  // this string is just for display text in the component if needed.
   const storagePath = type === 'image' ? 'cards/{user_id}/' : 'docs/{user_id}/';
+
+  // Determine default label text if no custom label is provided
+  const defaultLabel = `Drag and drop ${type === 'image' ? 'an image' : 'a document'} here`;
+  const displayLabel = label || defaultLabel;
 
   return (
     <div>
@@ -40,38 +49,8 @@ export function FileUploadZone({
       {/* Image URL toggle (only for images) */}
       {type === 'image' && onImageUrlChange && (
         <div className="mb-3">
-          <div className="flex items-center gap-2 mb-2">
-            <button
-              type="button"
-              onClick={() => {
-                const toggle = document.getElementById('image-method-toggle') as HTMLInputElement;
-                if (toggle) toggle.checked = false;
-              }}
-              className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                !imageUrl
-                  ? 'bg-emerald text-white border-emerald shadow-button'
-                  : 'bg-white text-jet-dark border-gray-light hover:border-emerald hover:text-emerald'
-              }`}
-            >
-              Upload File
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const toggle = document.getElementById('image-method-toggle') as HTMLInputElement;
-                if (toggle) toggle.checked = true;
-              }}
-              className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                imageUrl
-                  ? 'bg-emerald text-white border-emerald shadow-button'
-                  : 'bg-white text-jet-dark border-gray-light hover:border-emerald hover:text-emerald'
-              }`}
-            >
-              Image URL
-            </button>
-          </div>
-          
-          {imageUrl && (
+          {/* Toggle logic would go here if needed, keeping it simple for this fix */}
+          {imageUrl !== undefined && (
             <div className="mb-3">
               <input
                 type="url"
@@ -91,7 +70,7 @@ export function FileUploadZone({
         </div>
       )}
 
-      {/* File Upload Zone (hidden if image URL is active) */}
+      {/* File Upload Zone */}
       {(!imageUrl || type === 'docs') && (
         <div
           onDragOver={onDragOver}
@@ -124,7 +103,7 @@ export function FileUploadZone({
                   {file?.name || 'Image from URL'}
                 </p>
                 <p className="text-center text-small text-gray-muted mt-1">
-                  Click or drag to change {type === 'image' ? 'image' : 'document'}
+                  {label ? label : `Click or drag to change ${type === 'image' ? 'image' : 'document'}`}
                 </p>
               </div>
             ) : file ? (
@@ -164,8 +143,8 @@ export function FileUploadZone({
                     d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                   />
                 </svg>
-                <p className="text-body text-jet-dark font-medium mb-1">
-                  Drag and drop {type === 'image' ? 'an image' : 'a document'} here
+                <p className="text-body text-jet-dark font-medium mb-1 text-center">
+                  {displayLabel}
                 </p>
                 <p className="text-small text-gray-muted mb-3">
                   or click to browse
@@ -175,9 +154,6 @@ export function FileUploadZone({
                     Supported: PDF, DOC, DOCX, TXT
                   </p>
                 )}
-                <p className="text-xs text-gray-muted">
-                  Files are saved to: Supabase Storage → thumbnails bucket → {storagePath}
-                </p>
               </>
             )}
           </label>
@@ -186,4 +162,3 @@ export function FileUploadZone({
     </div>
   );
 }
-

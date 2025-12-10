@@ -1,103 +1,79 @@
-import { createServerClient } from '@supabase/ssr';
-import { NextResponse } from 'next/server';
-import { type NextRequest } from 'next/server';
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse } from "next/server";
+import { type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
     const requestUrl = new URL(request.url);
-    const code = requestUrl.searchParams.get('code');
-    const error = requestUrl.searchParams.get('error');
-    const errorDescription = requestUrl.searchParams.get('error_description');
-    const next = requestUrl.searchParams.get('next') || '/';
+    const code = requestUrl.searchParams.get("code");
+    const error = requestUrl.searchParams.get("error");
+    const errorDescription = requestUrl.searchParams.get("error_description");
+    const next = requestUrl.searchParams.get("next") || "/";
 
-    // Handle OAuth errors from the provider
+    // 1. Handle OAuth errors from the provider
     if (error) {
-      console.error('OAuth error:', error, errorDescription);
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('error', errorDescription || error);
+      console.error("OAuth error from provider:", error, errorDescription);
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("error", errorDescription || error);
       return NextResponse.redirect(loginUrl);
     }
 
     if (!code) {
-      console.error('No code parameter in OAuth callback');
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('error', 'no_code');
+      console.error("No code parameter found in OAuth callback");
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("error", "no_code");
       return NextResponse.redirect(loginUrl);
     }
 
-    // Validate environment variables
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      console.error('Missing Supabase environment variables');
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('error', 'configuration_error');
-      return NextResponse.redirect(loginUrl);
-    }
-
-    // Construct redirect URL safely
+    // 2. Prepare the response (we will set cookies on this)
     const redirectUrl = new URL(next, request.url);
     const supabaseResponse = NextResponse.redirect(redirectUrl);
-    
+
+    // 3. Create Supabase Client
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return request.cookies.get(name)?.value;
+          getAll() {
+            return request.cookies.getAll();
           },
-          set(name: string, value: string, options: any) {
-            request.cookies.set({
-              name,
-              value,
-              ...options,
-            });
-            supabaseResponse.cookies.set({
-              name,
-              value,
-              ...options,
-            });
-          },
-          remove(name: string, options: any) {
-            request.cookies.set({
-              name,
-              value: '',
-              ...options,
-            });
-            supabaseResponse.cookies.set({
-              name,
-              value: '',
-              ...options,
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              request.cookies.set(name, value);
+              supabaseResponse.cookies.set(name, value, options);
             });
           },
         },
       }
     );
 
-    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-    
+    // 4. Exchange the code for a session
+    const { data, error: exchangeError } =
+      await supabase.auth.exchangeCodeForSession(code);
+
     if (exchangeError) {
-      console.error('Error exchanging code for session:', exchangeError);
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('error', exchangeError.message);
+      console.error("Supabase Code Exchange Error:", exchangeError);
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("error", "auth_exchange_failed");
+      loginUrl.searchParams.set("details", exchangeError.message);
       return NextResponse.redirect(loginUrl);
     }
 
     if (data?.session) {
-      // Successful authentication, redirect to the intended page
+      // Success! The session cookies are now set on supabaseResponse
       return supabaseResponse;
     }
 
-    // No session created
-    console.error('No session created after code exchange');
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('error', 'no_session');
+    // Fallback if no session
+    console.error("No session retrieved after code exchange");
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("error", "no_session_created");
     return NextResponse.redirect(loginUrl);
   } catch (err) {
-    console.error('Unexpected error in OAuth callback:', err);
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('error', errorMessage);
+    console.error("Unexpected error in /auth/callback:", err);
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("error", "server_error");
     return NextResponse.redirect(loginUrl);
   }
 }
-

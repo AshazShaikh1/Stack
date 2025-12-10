@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from './ui/Button';
 
 interface ErrorBoundaryState {
@@ -13,7 +13,7 @@ interface ErrorBoundaryProps {
   fallback?: React.ComponentType<{ error: Error | null; resetError: () => void }>;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -23,9 +23,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    // You can log to an error reporting service here (e.g., Sentry)
   }
 
   resetError = () => {
@@ -48,9 +47,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
-export { ErrorBoundary };
-export default ErrorBoundary;
-
 function DefaultErrorFallback({ error, resetError }: { error: Error | null; resetError: () => void }) {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -62,13 +58,6 @@ function DefaultErrorFallback({ error, resetError }: { error: Error | null; rese
         <p className="text-body text-gray-muted mb-6">
           We encountered an unexpected error. Please try refreshing the page or contact support if the problem persists.
         </p>
-        {error && process.env.NODE_ENV === 'development' && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
-            <p className="text-sm font-mono text-red-800 break-all">
-              {error.message}
-            </p>
-          </div>
-        )}
         <div className="flex gap-3 justify-center">
           <Button variant="primary" onClick={resetError}>
             Try Again
@@ -81,4 +70,3 @@ function DefaultErrorFallback({ error, resetError }: { error: Error | null; rese
     </div>
   );
 }
-

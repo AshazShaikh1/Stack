@@ -1,14 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
-import { createServiceClient } from '@/lib/supabase/api-service';
-import { getDurationDays } from '@/lib/stripe';
-import Stripe from 'stripe';
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-if (!webhookSecret) {
-  throw new Error('STRIPE_WEBHOOK_SECRET is not set in environment variables');
-}
+import { NextRequest, NextResponse } from "next/server";
+import { stripe } from "@/lib/stripe";
+import { createServiceClient } from "@/lib/supabase/api-service";
+import Stripe from "stripe";
 
 /**
  * POST /api/payments/webhook
@@ -17,11 +10,20 @@ if (!webhookSecret) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
-    const signature = request.headers.get('stripe-signature');
+    const signature = request.headers.get("stripe-signature");
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+      console.error("Webhook Error: STRIPE_WEBHOOK_SECRET is missing");
+      return NextResponse.json(
+        { error: "Server Configuration Error" },
+        { status: 500 }
+      );
+    }
 
     if (!signature) {
       return NextResponse.json(
-        { error: 'Missing stripe-signature header' },
+        { error: "Missing stripe-signature header" },
         { status: 400 }
       );
     }
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err: any) {
-      console.error('Webhook signature verification failed:', err.message);
+      console.error("Webhook signature verification failed:", err.message);
       return NextResponse.json(
         { error: `Webhook Error: ${err.message}` },
         { status: 400 }
@@ -41,13 +43,13 @@ export async function POST(request: NextRequest) {
     const supabase = createServiceClient();
 
     // Handle the event
-    if (event.type === 'checkout.session.completed') {
+    if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       await handleCheckoutCompleted(session, supabase);
-    } else if (event.type === 'payment_intent.succeeded') {
+    } else if (event.type === "payment_intent.succeeded") {
       // Payment succeeded (already handled by checkout.session.completed)
-      console.log('PaymentIntent succeeded:', event.data.object);
-    } else if (event.type === 'payment_intent.payment_failed') {
+      console.log("PaymentIntent succeeded:", event.data.object);
+    } else if (event.type === "payment_intent.payment_failed") {
       // Payment failed
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
       await handlePaymentFailed(paymentIntent, supabase);
@@ -55,9 +57,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error: any) {
-    console.error('Error processing webhook:', error);
+    console.error("Error processing webhook:", error);
     return NextResponse.json(
-      { error: error.message || 'Webhook handler failed' },
+      { error: error.message || "Webhook handler failed" },
       { status: 500 }
     );
   }
@@ -69,7 +71,7 @@ async function handleCheckoutCompleted(
 ) {
   const metadata = session.metadata;
   if (!metadata) {
-    console.error('No metadata in checkout session');
+    console.error("No metadata in checkout session");
     return;
   }
 
@@ -82,24 +84,24 @@ async function handleCheckoutCompleted(
     username,
     duration_days,
   } = metadata;
-  
+
   const id = collection_id || stack_id; // Support both
 
   if (!user_id || !type) {
-    console.error('Missing required metadata:', { user_id, type });
+    console.error("Missing required metadata:", { user_id, type });
     return;
   }
 
   // Record payment in database
   const { data: payment, error: paymentError } = await supabase
-    .from('payments')
+    .from("payments")
     .insert({
       stripe_payment_id: session.payment_intent as string,
       user_id,
       amount: session.amount_total || 0,
-      currency: session.currency || 'usd',
+      currency: session.currency || "usd",
       type,
-      status: 'completed',
+      status: "completed",
       metadata: {
         duration,
         collection_id: collection_id || null,
@@ -113,80 +115,85 @@ async function handleCheckoutCompleted(
     .single();
 
   if (paymentError) {
-    console.error('Error recording payment:', paymentError);
+    console.error("Error recording payment:", paymentError);
     return;
   }
 
   // Apply the payment benefit based on type
   const days = duration_days ? parseInt(duration_days, 10) : null;
-  const expiresAt = days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString() : null;
+  const expiresAt = days
+    ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+    : null;
 
   switch (type) {
-    case 'promote':
+    case "promote":
       if (id && expiresAt) {
         // Try collections first
         const { error: collectionError } = await supabase
-          .from('collections')
+          .from("collections")
           .update({ promoted_until: expiresAt })
-          .eq('id', id);
-        
+          .eq("id", id);
+
         // Fallback to stacks for legacy support
         if (collectionError) {
           await supabase
-            .from('stacks')
+            .from("stacks")
             .update({ promoted_until: expiresAt })
-            .eq('id', id);
+            .eq("id", id);
         }
       }
       break;
 
-    case 'hidden_stack':
+    case "hidden_stack":
       if (id && expiresAt) {
         // Try collections first
         const { error: collectionError } = await supabase
-          .from('collections')
+          .from("collections")
           .update({ is_hidden: true })
-          .eq('id', id);
-        
+          .eq("id", id);
+
         // Fallback to stacks for legacy support
         if (collectionError) {
           await supabase
-            .from('stacks')
+            .from("stacks")
             .update({ is_hidden: true })
-            .eq('id', id);
+            .eq("id", id);
         }
         // Note: We don't automatically unhide after expiry - that would require a worker
         // For MVP, hidden collections stay hidden until manually changed
       }
       break;
 
-    case 'featured_stacker':
+    case "featured_stacker":
       if (expiresAt) {
         await supabase
-          .from('users')
+          .from("users")
           .update({ featured_until: expiresAt })
-          .eq('id', user_id);
+          .eq("id", user_id);
       }
       break;
 
-    case 'reserve_username':
+    case "reserve_username":
       if (username) {
         // Update user's username and mark as reserved
         await supabase
-          .from('users')
+          .from("users")
           .update({
             username: username.toLowerCase(),
             reserved_username: true,
           })
-          .eq('id', user_id);
+          .eq("id", user_id);
       }
       break;
 
     default:
-      console.error('Unknown payment type:', type);
+      console.error("Unknown payment type:", type);
   }
 
-  console.log('Payment processed successfully:', { payment_id: payment.id, type });
+  console.log("Payment processed successfully:", {
+    payment_id: payment.id,
+    type,
+  });
 }
 
 async function handlePaymentFailed(
@@ -194,18 +201,15 @@ async function handlePaymentFailed(
   supabase: ReturnType<typeof createServiceClient>
 ) {
   // Record failed payment
-  await supabase
-    .from('payments')
-    .insert({
-      stripe_payment_id: paymentIntent.id,
-      user_id: paymentIntent.metadata?.user_id || null,
-      amount: paymentIntent.amount,
-      currency: paymentIntent.currency,
-      type: paymentIntent.metadata?.type || 'unknown',
-      status: 'failed',
-      metadata: paymentIntent.metadata || {},
-    });
+  await supabase.from("payments").insert({
+    stripe_payment_id: paymentIntent.id,
+    user_id: paymentIntent.metadata?.user_id || null,
+    amount: paymentIntent.amount,
+    currency: paymentIntent.currency,
+    type: paymentIntent.metadata?.type || "unknown",
+    status: "failed",
+    metadata: paymentIntent.metadata || {},
+  });
 
-  console.log('Payment failed recorded:', paymentIntent.id);
+  console.log("Payment failed recorded:", paymentIntent.id);
 }
-

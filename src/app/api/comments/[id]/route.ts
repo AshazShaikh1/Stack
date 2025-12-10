@@ -211,7 +211,7 @@ export async function DELETE(
         commentId: id,
         userId: user.id,
         isAuthor,
-        isStackOwner,
+        isStackOwner: isOwner,
       });
       return NextResponse.json(
         { error: deleteError.message || 'Failed to delete comment. Check RLS policies.' },

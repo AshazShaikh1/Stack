@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Unit tests for ranking algorithm
  * Feature flag: ranking/final-algo

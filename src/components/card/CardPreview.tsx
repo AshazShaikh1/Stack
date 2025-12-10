@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Dropdown } from '@/components/ui/Dropdown';
-import { Button } from '@/components/ui/Button';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { EditCardModal } from '@/components/card/EditCardModal';
 import { createClient } from '@/lib/supabase/client';
@@ -29,10 +28,14 @@ interface CardPreviewProps {
       affiliate_url?: string;
       is_amazon_product?: boolean;
     };
-    created_by?: string; // Card creator ID
+    created_by?: string;
+    creator?: {
+      username?: string;
+      display_name?: string;
+    };
   };
-  stackId?: string; // Legacy support
-  stackOwnerId?: string; // Legacy support
+  stackId?: string;
+  stackOwnerId?: string;
   collectionId?: string;
   collectionOwnerId?: string;
   addedBy?: string;
@@ -48,29 +51,20 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
   const [isDeleting, setIsDeleting] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   
-  // Generate deterministic but varied image height based on card ID
-  // This ensures each card always has the same height but different cards vary
   const getImageHeight = (id: string): number => {
-    // Simple hash function to convert ID to a number
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
       const char = id.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash = hash & hash;
     }
-    
-    // Use absolute value and modulo to get a value between 0-4
     const variation = Math.abs(hash) % 5;
-    
-    // Map to different heights: 200px (short), 240px, 280px, 320px, 360px (tall)
-    // This creates a nice variety without being too extreme
     const heights = [200, 240, 280, 320, 360];
     return heights[variation];
   };
   
   const imageHeight = getImageHeight(card.id);
   
-  // Save functionality for cards
   const { saves: saveCount, saved: isSaved, isLoading: isSaving, isAnimating, toggleSave } = useSaves({
     cardId: card.id,
     targetType: 'card',
@@ -78,7 +72,6 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
     initialSaved: false,
   });
 
-  // Vote functionality for cards
   const { upvotes, voted, isLoading: isVoting, toggleVote } = useVotes({
     targetType: 'card',
     targetId: card.id,
@@ -96,10 +89,6 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
   const ownerId = collectionOwnerId || stackOwnerId;
   const id = collectionId || stackId;
   
-  // User can edit/delete if they are:
-  // 1. The collection/stack owner
-  // 2. The one who added the card to the collection/stack
-  // 3. The card creator (for standalone cards)
   const canEdit = user && (
     (id && (user.id === ownerId || user.id === addedBy)) ||
     (!id && card.created_by && user.id === card.created_by)
@@ -116,11 +105,8 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      // If card is in a collection/stack, include that in the query to remove it
-      // Otherwise, delete the card entirely (only if user created it)
       let url = `/api/cards/${card.id}`;
       if (id) {
-        // Prefer collection_id over stack_id
         const queryParam = collectionId 
           ? `collection_id=${collectionId}` 
           : (stackId ? `stack_id=${stackId}` : '');
@@ -140,7 +126,6 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
       }
 
       showSuccess(id ? 'Card removed from collection successfully' : 'Card deleted successfully');
-      // Force page reload to update the grid
       window.location.reload();
     } catch (error: any) {
       console.error('Error deleting card:', error);
@@ -152,46 +137,32 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
   const displayTitle = card.title || card.canonical_url;
   const displayDomain = card.domain || (card.canonical_url ? new URL(card.canonical_url).hostname : '');
   
-  // Get image URL - use thumbnail_url if available, otherwise use a local placeholder
-  // Memoize placeholder to avoid recalculating on every render
   const placeholderUrl = useMemo(() => generatePlaceholderImage(
-    imageHeight * 1.33, // Approximate width based on height
+    imageHeight * 1.33,
     imageHeight,
     displayTitle.substring(0, 15) || 'Card'
   ), [imageHeight, displayTitle]);
   
-  // Initialize with thumbnail_url if available, otherwise placeholder
   const [imageUrl, setImageUrl] = useState<string>(() => 
     card.thumbnail_url || placeholderUrl
   );
   const [imageError, setImageError] = useState(false);
 
-  // Update image URL when card.thumbnail_url changes
   useEffect(() => {
     if (card.thumbnail_url) {
       setImageUrl(card.thumbnail_url);
       setImageError(false);
     } else {
-      // Set placeholder if no thumbnail_url
       setImageUrl(placeholderUrl);
     }
   }, [card.thumbnail_url, placeholderUrl]);
 
-  // Try to fetch image if not available (debounced and only if needed)
   useEffect(() => {
-    // Only fetch if:
-    // 1. No thumbnail_url exists
-    // 2. We have a canonical_url
-    // 3. We haven't already tried and failed
-    // 4. We're not already showing a placeholder (avoid unnecessary fetches)
     if (!card.thumbnail_url && card.canonical_url && !imageError && imageUrl === placeholderUrl) {
-      // Longer debounce to avoid overwhelming the server with requests
-      // Also helps batch requests if multiple cards need metadata
       const controller = new AbortController();
       let timeoutId: NodeJS.Timeout;
       
       timeoutId = setTimeout(() => {
-        // Trigger metadata fetch in background to get thumbnail
         fetch(`/api/cards/metadata`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -205,12 +176,11 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
             }
           })
           .catch((err) => {
-            // Only set error if it's not an abort (component unmounted or timeout)
             if (err.name !== 'AbortError') {
               setImageError(true);
             }
           });
-      }, 3000); // 3 second debounce - reduces server load significantly
+      }, 3000);
       
       return () => {
         clearTimeout(timeoutId);
@@ -228,11 +198,8 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
         title: card.title || 'Check this out',
         text: card.description || '',
         url: (card.metadata as any)?.affiliate_url || card.canonical_url,
-      }).catch(() => {
-        // User cancelled or error occurred
-      });
+      }).catch(() => {});
     } else {
-      // Fallback: copy to clipboard
       const urlToCopy = (card.metadata as any)?.affiliate_url || card.canonical_url;
       navigator.clipboard.writeText(urlToCopy).then(() => {
         showSuccess('Link copied to clipboard!');
@@ -255,12 +222,11 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
           rel="noopener noreferrer"
         >
           <Card hover={false} className="overflow-hidden h-full flex flex-col bg-white rounded-card border border-gray-light shadow-card hover:shadow-cardHover transition-all duration-300">
-            {/* Image Section with Overlays - Variable height based on card ID */}
+            {/* Image Section */}
             <div 
               className="relative w-full bg-gray-light overflow-hidden"
               style={{ height: `${imageHeight}px` }}
             >
-              {/* Main Image - Always show an image */}
               {imageUrl ? (
                 <Image
                   src={imageUrl}
@@ -272,8 +238,6 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
                   loading="lazy"
                   priority={false}
                   onError={() => {
-                    // Fallback to local placeholder if image fails to load
-                    // Only do this if we haven't already shown the placeholder
                     if (!imageError && !imageUrl.startsWith('data:')) {
                       setImageError(true);
                       setImageUrl(placeholderUrl);
@@ -286,7 +250,6 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
                 </div>
               )}
 
-              {/* Top Left - Tag/Badge (optional) */}
               {card.domain && (
                 <div className="absolute top-3 left-3 z-20">
                   <span className="px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md text-xs font-medium text-jet-dark">
@@ -295,7 +258,6 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
                 </div>
               )}
 
-              {/* Top Right - Share and More Options (shown on hover) */}
               {!hideHoverButtons && (
               <div 
                 className={`absolute top-3 right-3 z-20 flex gap-2 transition-opacity duration-200 ${
@@ -303,7 +265,6 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
                 }`}
                 onClick={(e) => e.preventDefault()}
               >
-                {/* Share Button */}
                 <button
                   onClick={handleShare}
                   className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm"
@@ -314,7 +275,6 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
                   </svg>
                 </button>
 
-                {/* More Options - Only show for owners/creators */}
                 {canEdit && (
                   <div className="relative">
                     <Dropdown
@@ -352,7 +312,6 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
               </div>
               )}
 
-              {/* Bottom Left - Engagement Metrics (shown on hover) */}
               {!hideHoverButtons && (
               <div 
                 className={`absolute bottom-3 left-3 z-20 flex items-center gap-3 transition-opacity duration-200 ${
@@ -402,7 +361,6 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
               </div>
               )}
 
-              {/* Bottom Right - Save Button (prominent, shown on hover) */}
               {!hideHoverButtons && user && (
                 <div 
                   className={`absolute bottom-3 right-3 z-20 transition-opacity duration-200 ${
@@ -440,12 +398,20 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
                 </h3>
               )}
 
-              {/* Link with External Icon */}
-              <div className="mt-auto pt-2 flex items-center gap-2">
-                <svg className="w-4 h-4 text-gray-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-                <span className="text-sm text-gray-muted truncate">{displayDomain}</span>
+              {/* Link and Creator */}
+              <div className="mt-auto pt-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <svg className="w-4 h-4 text-gray-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  <span className="text-sm text-gray-muted truncate">{displayDomain}</span>
+                </div>
+                
+                {card.creator?.display_name && (
+                  <span className="text-xs text-gray-400 truncate max-w-[40%] text-right" title={`Created by ${card.creator.display_name}`}>
+                    By {card.creator.display_name}
+                  </span>
+                )}
               </div>
             </div>
           </Card>
@@ -483,4 +449,3 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
     </>
   );
 }
-
