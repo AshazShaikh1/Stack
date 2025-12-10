@@ -76,31 +76,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Account age check (disabled for testing if needed)
-    /*
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('created_at')
-      .eq('id', user.id)
-      .single();
-
-    if (userProfile) {
-      const accountAgeHours = (Date.now() - new Date(userProfile.created_at).getTime()) / (1000 * 60 * 60);
-      if (accountAgeHours < 48) {
-        return NextResponse.json(
-          { error: 'Account must be at least 48 hours old to vote' },
-          { status: 403 }
-        );
-      }
-    }
-    */
-
     // Check if vote already exists
     const { data: existingVote } = await serviceClient
       .from("votes")
       .select("id")
       .eq("user_id", user.id)
-      .eq("target_type", target_type) // Use raw type for lookup
+      .eq("target_type", target_type)
       .eq("target_id", target_id)
       .maybeSingle();
 
@@ -111,11 +92,7 @@ export async function POST(request: NextRequest) {
     if (existingVote) {
       // Remove vote (toggle off)
       await serviceClient.from("votes").delete().eq("id", existingVote.id);
-
-      // Update stats
       await updateVoteStats(serviceClient, target_type, target_id, -1);
-
-      // Log ranking event
       await logRankingEvent(
         normalizedTargetType as "card" | "collection",
         target_id,
@@ -126,8 +103,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create vote
-    // Use normalized type for DB insert if your DB enforces it, otherwise use raw
-    // Assuming DB accepts 'collection'
     const { error: voteError } = await serviceClient.from("votes").insert({
       user_id: user.id,
       target_type: normalizedTargetType,
@@ -148,6 +123,49 @@ export async function POST(request: NextRequest) {
       "upvote"
     );
 
+    // --- NOTIFICATION LOGIC START ---
+    // Run in background to avoid blocking response
+    (async () => {
+      try {
+        const table =
+          normalizedTargetType === "collection" ? "collections" : "cards";
+        const ownerField =
+          normalizedTargetType === "collection" ? "owner_id" : "created_by";
+
+        // Fetch target item to get owner and title
+        const { data: targetItem } = await serviceClient
+          .from(table)
+          .select(`id, title, ${ownerField}`)
+          .eq("id", target_id)
+          .single();
+
+        if (targetItem) {
+          // Cast targetItem to any to allow dynamic key access
+          const item = targetItem as any;
+          const ownerId = item[ownerField];
+
+          // Don't notify if user is voting on their own content
+          if (ownerId && ownerId !== user.id) {
+            const notificationData: any = {
+              [`${normalizedTargetType}_id`]: target_id,
+              [`${normalizedTargetType}_title`]: targetItem.title,
+            };
+
+            await serviceClient.from("notifications").insert({
+              user_id: ownerId, // Recipient
+              actor_id: user.id, // Triggered by
+              type: "upvote",
+              data: notificationData,
+              read: false,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error creating upvote notification:", err);
+      }
+    })();
+    // --- NOTIFICATION LOGIC END ---
+
     return NextResponse.json({ success: true, voted: true });
   } catch (error: any) {
     console.error("Error in votes route:", error);
@@ -158,20 +176,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// FIXED: This function now correctly maps 'stack' to 'collections' table
 async function updateVoteStats(
   serviceClient: any,
   targetType: string,
   targetId: string,
   delta: number
 ) {
-  // Map 'stack' (legacy) and 'collection' to the 'collections' table
   const table =
     targetType === "stack" || targetType === "collection"
       ? "collections"
       : "cards";
 
-  // Get current stats
   const { data: target } = await serviceClient
     .from(table)
     .select("stats")

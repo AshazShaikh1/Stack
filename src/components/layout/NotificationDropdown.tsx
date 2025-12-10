@@ -3,14 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { NotificationIcon } from "@/components/ui/Icons";
 
 interface Notification {
   id: string;
-  // UPDATE: Add new types
   type:
     | "follow"
     | "upvote"
@@ -21,11 +19,10 @@ interface Notification {
   actor_id: string;
   data: {
     collection_id?: string;
-    stack_id?: string;
+    stack_id?: string; // Legacy support
     collection_title?: string;
-    stack_title?: string;
+    stack_title?: string; // Legacy support
     card_id?: string;
-    // UPDATE: Add card_title
     card_title?: string;
     comment_id?: string;
     comment_content?: string;
@@ -49,6 +46,7 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMarkingRead, setIsMarkingRead] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -105,6 +103,7 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
 
     fetchNotifications();
 
+    // Subscribe to real-time updates
     const supabase = createClient();
     const channel = supabase
       .channel("notifications")
@@ -147,6 +146,7 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
   }, [isOpen]);
 
   const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read
     if (!notification.read) {
       const supabase = createClient();
       await supabase
@@ -162,14 +162,16 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
 
     setIsOpen(false);
 
+    // Redirect based on notification type
     const collectionId =
-      notification.data.collection_id || notification.data.stack_id;
+      notification.data.collection_id || notification.data.stack_id; // Support both
 
     switch (notification.type) {
       case "follow":
         router.push(`/profile/${notification.actor.username}`);
         break;
       case "upvote":
+        // If it's a comment upvote, go to the collection with the comment
         if (notification.data.comment_id && collectionId) {
           router.push(`/collection/${collectionId}`);
         } else if (collectionId) {
@@ -190,7 +192,6 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
           router.push(`/collection/${collectionId}`);
         }
         break;
-      // UPDATE: Handle new types
       case "new_card":
         if (notification.data.card_id) {
           router.push(`/card/${notification.data.card_id}`);
@@ -206,6 +207,33 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
     }
   };
 
+  // Renamed from handleClearAll -> Marks everything as read
+  const handleMarkAsRead = async () => {
+    if (unreadCount === 0) return;
+
+    setIsMarkingRead(true);
+
+    // Optimistic update
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setUnreadCount(0);
+
+    try {
+      await fetch("/api/notifications/read-all", {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+    } finally {
+      setIsMarkingRead(false);
+    }
+  };
+
+  // New function: Removes all notifications from the UI list
+  const handleClearList = () => {
+    setNotifications([]);
+    setUnreadCount(0);
+  };
+
   const formatNotificationText = (notification: Notification): string => {
     const actorName = notification.actor?.display_name || "Someone";
     const collectionTitle =
@@ -217,6 +245,7 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
       case "follow":
         return `${actorName} started following you`;
       case "upvote":
+        // Check if it's an upvote on a comment
         if (notification.data.comment_id) {
           const commentContent = notification.data.comment_content
             ? `"${notification.data.comment_content.substring(0, 50)}${
@@ -228,6 +257,7 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
         if (notification.data.card_id) {
           return `${actorName} upvoted your card`;
         }
+        // Otherwise it's an upvote on a collection
         return `${actorName} upvoted your ${collectionTitle} collection`;
       case "comment":
         if (notification.data.card_id) {
@@ -236,7 +266,6 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
         return `${actorName} commented on your ${collectionTitle} collection`;
       case "clone":
         return `${actorName} cloned your ${collectionTitle} collection`;
-      // UPDATE: Format text for new types
       case "new_card":
         return `${actorName} posted a new card: ${
           notification.data.card_title || "Check it out"
@@ -291,6 +320,7 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
         </button>
       </Tooltip>
 
+      {/* Dropdown Menu */}
       {isOpen && (
         <>
           <div
@@ -298,10 +328,31 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
             onClick={() => setIsOpen(false)}
           />
           <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-light z-20 overflow-hidden max-h-[500px] flex flex-col">
-            <div className="px-4 py-3 border-b border-gray-light">
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-gray-light flex justify-between items-center bg-white sticky top-0 z-30">
               <h3 className="font-semibold text-jet-dark">Notifications</h3>
+              <div className="flex gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAsRead}
+                    disabled={isMarkingRead}
+                    className="text-xs text-gray-500 hover:text-emerald font-medium transition-colors px-2 py-1 rounded hover:bg-gray-50"
+                  >
+                    {isMarkingRead ? "Marking..." : "Mark as read"}
+                  </button>
+                )}
+                {notifications.length > 0 && (
+                  <button
+                    onClick={handleClearList}
+                    className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors px-2 py-1 rounded hover:bg-red-50"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
             </div>
 
+            {/* Notifications List */}
             <div className="overflow-y-auto flex-1">
               {isLoading ? (
                 <div className="p-4 text-center text-gray-muted">

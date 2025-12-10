@@ -27,14 +27,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Accept 'collection' (new) or 'stack' (legacy) for backward compatibility
-    // Normalize both to 'collection' for database queries if your DB stores them as 'collection'
-    // BUT the comments table likely stores whatever you sent it.
-    // If you migrated comment rows to use 'collection', use 'collection'.
-    // If you kept 'stack' in DB rows, keep using targetType.
-    // Based on previous context, let's assume rows might still say 'stack' or 'collection'.
-    // However, queries for the *parent object* (stacks/collections table) must use 'collections'.
-
     if (!["stack", "card", "collection"].includes(targetType)) {
       return NextResponse.json(
         { error: 'target_type must be "collection", "stack", or "card"' },
@@ -42,7 +34,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get current user to check if they can see hidden comments
     const {
       data: { user: currentUser },
     } = await supabase.auth.getUser();
@@ -50,7 +41,6 @@ export async function GET(request: NextRequest) {
       ? await checkIsAdmin(supabase, currentUser.id)
       : false;
 
-    // Fetch all comments for this target
     let query = supabase
       .from("comments")
       .select(
@@ -73,19 +63,15 @@ export async function GET(request: NextRequest) {
         )
       `
       )
-      .eq("target_id", targetId) // Filter by ID first
+      .eq("target_id", targetId)
       .eq("deleted", false);
 
-    // Filter by type: handle legacy 'stack' vs 'collection'
-    // If the frontend asks for 'stack', we should probably look for both 'stack' and 'collection' rows
-    // to be safe during migration, OR just strict equality if migration script updated all rows.
     if (targetType === "stack" || targetType === "collection") {
       query = query.in("target_type", ["stack", "collection"]);
     } else {
       query = query.eq("target_type", targetType);
     }
 
-    // Filter out hidden comments unless user is admin or comment author
     if (!isAdmin && currentUser) {
       query = query.or(`hidden.eq.false,user_id.eq.${currentUser.id}`);
     } else if (!isAdmin && !currentUser) {
@@ -100,10 +86,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    // Build threaded structure (max 4 levels)
     const threadedComments = buildThreadedComments(comments || []);
-
-    // Comments are user-specific but can be cached briefly
     return cachedJsonResponse({ comments: threadedComments }, "USER_SPECIFIC");
   } catch (error) {
     console.error("Error in comments GET route:", error);
@@ -127,7 +110,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user is shadowbanned
     const serviceClient = createServiceClient();
     const isShadowbanned = await checkShadowban(serviceClient, user.id);
     if (isShadowbanned) {
@@ -137,7 +119,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Rate limiting
     const ipAddress = getIpAddress(request);
     const identifier = getRateLimitIdentifier(user.id, ipAddress);
     const rateLimitResult = await checkRateLimit(
@@ -167,13 +148,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize type for consistency
-    // We will save 'collection' in the DB even if 'stack' is sent, to future-proof it.
-    // BUT we must check if your DB constraint allows 'collection'.
-    // Assuming migration 029 updated the constraint too? If not, fallback to 'stack'.
-    // Ideally: use 'collection' if the constraint allows it.
     let dbTargetType = target_type;
-    if (target_type === "stack") dbTargetType = "collection"; // Prefer 'collection'
+    if (target_type === "stack") dbTargetType = "collection";
 
     if (!["stack", "card", "collection"].includes(target_type)) {
       return NextResponse.json(
@@ -182,7 +158,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate content length
     if (content.trim().length === 0 || content.length > 5000) {
       return NextResponse.json(
         { error: "Comment must be between 1 and 5000 characters" },
@@ -190,7 +165,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If parent_id is provided, validate nesting depth (max 4 levels)
     if (parent_id) {
       const { data: parentComment } = await supabase
         .from("comments")
@@ -205,7 +179,6 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Check nesting depth
       const depth = await getCommentDepth(supabase, parent_id);
       if (depth >= 4) {
         return NextResponse.json(
@@ -215,16 +188,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Moderate comment content
     const moderationResult = await moderateComment(content.trim());
     const shouldHide = moderationResult.shouldHide;
 
-    // Create comment
     const { data: newComment, error: commentError } = await serviceClient
       .from("comments")
       .insert({
         user_id: user.id,
-        target_type: dbTargetType, // Use the normalized type
+        target_type: dbTargetType,
         target_id,
         parent_id: parent_id || null,
         content: content.trim(),
@@ -263,15 +234,84 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update comment stats - FIXED FUNCTION
     await updateCommentStats(serviceClient, dbTargetType, target_id, 1);
-
-    // Log ranking event
     await logRankingEvent(
       dbTargetType === "card" ? "card" : "collection",
       target_id,
       "comment"
     );
+
+    // --- NOTIFICATION LOGIC START ---
+    (async () => {
+      try {
+        const table = dbTargetType === "collection" ? "collections" : "cards";
+        const ownerField =
+          dbTargetType === "collection" ? "owner_id" : "created_by";
+
+        // 1. Notify Post Owner
+        const { data: targetItem } = await serviceClient
+          .from(table)
+          .select(`id, title, ${ownerField}`)
+          .eq("id", target_id)
+          .single();
+
+        if (targetItem) {
+          // Cast targetItem to any to allow dynamic key access
+          const item = targetItem as any;
+          const ownerId = item[ownerField];
+
+          if (ownerId && ownerId !== user.id) {
+            await serviceClient.from("notifications").insert({
+              user_id: ownerId,
+              actor_id: user.id,
+              type: "comment",
+              data: {
+                [`${dbTargetType}_id`]: target_id,
+                [`${dbTargetType}_title`]: targetItem.title,
+                comment_id: newComment.id,
+                comment_content: content.trim(),
+              },
+              read: false,
+            });
+          }
+        }
+
+        // 2. Notify Parent Comment Author (if reply)
+        if (parent_id) {
+          const { data: parentComment } = await serviceClient
+            .from("comments")
+            .select("user_id")
+            .eq("id", parent_id)
+            .single();
+
+          // Avoid double notification if parent author is same as post owner
+          const item = targetItem as any;
+          const postOwnerId = item?.[ownerField];
+
+          if (
+            parentComment &&
+            parentComment.user_id !== user.id &&
+            parentComment.user_id !== postOwnerId
+          ) {
+            await serviceClient.from("notifications").insert({
+              user_id: parentComment.user_id,
+              actor_id: user.id,
+              type: "comment", // You might want to add 'reply' type later, but 'comment' works
+              data: {
+                [`${dbTargetType}_id`]: target_id,
+                [`${dbTargetType}_title`]: targetItem?.title,
+                comment_id: newComment.id,
+                comment_content: content.trim(),
+              },
+              read: false,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error creating comment notification:", err);
+      }
+    })();
+    // --- NOTIFICATION LOGIC END ---
 
     return NextResponse.json({ comment: newComment });
   } catch (error) {
@@ -283,7 +323,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ... existing helper functions (buildThreadedComments, getCommentDepth, checkIsAdmin) ...
 function buildThreadedComments(comments: any[]): any[] {
   const commentMap = new Map();
   const rootComments: any[] = [];
@@ -308,9 +347,7 @@ async function getCommentDepth(
 ): Promise<number> {
   let depth = 0;
   let currentId: string | null = commentId;
-
   while (currentId && depth < 5) {
-    // Explicitly type the response to fix the implicit 'any' error
     const {
       data: comment,
     }: { data: { parent_id: string | null } | null; error: any } =
@@ -319,15 +356,10 @@ async function getCommentDepth(
         .select("parent_id")
         .eq("id", currentId)
         .single();
-
-    if (!comment || !comment.parent_id) {
-      break;
-    }
-
+    if (!comment || !comment.parent_id) break;
     depth++;
     currentId = comment.parent_id;
   }
-
   return depth;
 }
 
@@ -340,38 +372,35 @@ async function checkIsAdmin(supabase: any, userId: string): Promise<boolean> {
   return user?.role === "admin";
 }
 
-// --- FIXED HELPER FUNCTION ---
 async function updateCommentStats(
   serviceClient: any,
   targetType: string,
   targetId: string,
   delta: number
 ) {
-  // Map both 'stack' and 'collection' to the 'collections' table
-  // This assumes the DB table is literally named "collections" now
   const table =
     targetType === "stack" || targetType === "collection"
       ? "collections"
       : "cards";
 
   try {
-    // Get current stats
     const { data: target } = await serviceClient
-      .from(table) // This now correctly uses 'collections' or 'cards'
+      .from(table)
       .select("stats")
       .eq("id", targetId)
       .single();
 
     if (target) {
       const stats = target.stats || {};
-      const currentComments = (stats.comments || 0) + delta;
+      const currentComments = stats.comments || 0;
+      const newComments = Math.max(0, currentComments + delta);
 
       await serviceClient
         .from(table)
         .update({
           stats: {
             ...stats,
-            comments: Math.max(0, currentComments),
+            comments: newComments,
           },
         })
         .eq("id", targetId);
