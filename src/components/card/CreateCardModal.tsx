@@ -184,7 +184,6 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
       .order('created_at', { ascending: false });
 
     setCollections(userCollections || []);
-    setStacks(userCollections || []);
   };
 
   const handleCardTypeSelect = (type: CardType) => {
