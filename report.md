@@ -13,6 +13,7 @@
 - Caching/Rate Limiting: Upstash Redis
 - Payments: Stripe
 - Analytics: Mixpanel
+- Charts: Recharts
 
 ---
 
@@ -37,13 +38,6 @@
 - Google OAuth setup
 - GitHub OAuth setup
 - User profile management with avatars
-
-### External Services Setup
-- **Supabase**: Database, Auth, Storage, Realtime
-- **Upstash Redis**: Caching and rate limiting
-- **Stripe**: Payment processing (promoted collections, featured users)
-- **Mixpanel**: Analytics tracking
-- Configuration documented in `Expected_Setup.md`
 
 ---
 
@@ -85,18 +79,12 @@
 
 ### Notifications
 - Real-time in-app notifications
-- Upvote, comment, clone, and follow notifications
 - Notification dropdown component
 - Realtime subscriptions via Supabase
 
 ### Search
 - Full-text search for collections, cards, and users
 - **Migration**: `010_search_users_function.sql` - User search function
-
-### Browser Extension
-- Plasmo-based browser extension
-- Quick save current page to selected collection
-- Extension authentication flow
 
 ---
 
@@ -110,24 +98,10 @@
   - `031_create_ranking_system.sql` - Complete ranking implementation
   - `033_add_performance_indexes.sql` - Performance indexes
 
-### Performance Indexes
-- Indexes on frequently queried columns
-- Full-text search indexes
-- Composite indexes for feed queries
-- **Migration**: `033_add_performance_indexes.sql`
-
 ### Caching Strategy
 - Redis caching for feed data
 - Rate limiting implementation
 - SWR for client-side data fetching
-
-### Background Jobs
-- Metadata fetching worker (GitHub Actions)
-- Link health checker
-- Ranking refresh scheduler
-- **Migrations**:
-  - `013_setup_pg_cron_jobs.sql` - Scheduled jobs
-  - `020_link_checker_setup.sql` - Link checking
 
 ---
 
@@ -137,150 +111,80 @@
 - Comprehensive RLS policies for all tables
 - User-specific data access
 - Public/private collection visibility
-- **Migrations**: `002_rls_policies.sql`, `005_fix_cards_rls.sql`
 
 ### Moderation
 - Comment moderation system
 - Report functionality
-- Auto-cleanup of cloned collections
 - **Migrations**:
   - `024_add_comment_moderation.sql` - Comment moderation
   - `012_auto_cleanup_clones.sql` - Clone cleanup
-
-### Rate Limiting
-- Upstash Redis rate limiting
-- API endpoint protection
-- User action throttling
 
 ---
 
 ## Phase 5: UI/UX Redesign
 
 ### Design System Update
-**Color Palette:**
-- Replaced black/jet accents with **Emerald Green (#1DB954)**
-- Updated `tailwind.config.ts` with emerald color variants
-- Updated `globals.css` with new CSS variables
+- **Theme**: Emerald Green (#1DB954) accents
+- **Typography**: Optimized for readability
+- **Components**: Updated Button, Card, and Input styles
 
-**Typography:**
-- Increased heading sizes (h1: 40px, h2: 28px, h3: 22px)
-- Improved line heights and letter spacing
-- Better contrast and readability
-
-**Components:**
-- Updated `Button.tsx` - Emerald primary buttons with shadows
-- Updated `Card.tsx` - Softer shadows, better borders
-- Enhanced hover states and transitions
-
-### Landing Page Redesign
-**New Content:**
-- Headline: "Discover and organize the best resources—curated by real people"
-- Sub-headline explaining Stacq's purpose
-- Primary CTA: "Get started"
-- Secondary CTA: "Browse Collections"
-
-**New Sections:**
-- **Hero Section** (`HeroSection.tsx`): Animated hero with gradient backgrounds and decorative shapes
-- **How It Works** (`HowItWorksSection.tsx`): 3-step explanation with icons (FolderPlus, Link2, Share2) and alternating image/text layout
-- **Trending Section** (`TrendingSection.tsx`): Displays 4 collections + 4 cards with categories
-- **CTA Section** (`CTASection.tsx`): Call-to-action with gradient background
-- **Footer** (`LandingFooter.tsx`): Brand, Product, and Account links
-
-**Visual Enhancements:**
-- Framer Motion animations for scroll-triggered effects
-- Geometric blobs and gradients
-- Responsive design (mobile-first)
-- Lucide React icons
-
-### Home Page (Feed) Redesign
-**FeedPage Updates:**
-- Larger, responsive typography
-- Emerald green filter buttons with active states
-- Improved empty and error states
-- Better spacing and visual hierarchy
-
-**CollectionCard Updates:**
-- Replaced all indigo/blue colors with emerald green
-- Collection badge: `bg-emerald`
-- Upvote icons: `fill-emerald`
-- Save buttons: `bg-emerald/emerald-dark`
-- Tags: `bg-emerald/10 text-emerald`
-- Placeholder gradients: emerald variants
-
-**CardPreview Updates:**
-- Save icon colors changed to emerald
-- Consistent emerald accent throughout
-
-### Responsive Design
-- Mobile-first approach
-- Breakpoints: `sm:`, `md:`, `lg:`, `xl:`
-- Flexible grid layouts
-- Touch-friendly interactions
+### Landing Page
+- Animated hero section
+- "How It Works" visualization
+- Trending preview section
 
 ---
 
 ## Phase 6: Bug Fixes & Corrections
 
-### Database Issues
-1. **Column name errors**: Fixed `canonical_url_hash` → `canonical_url` references
-2. **Table name updates**: Fixed `stack_id` → `collection_id` in `card_attributions` table
-3. **Index errors**: Corrected index creation on non-existent columns
-4. **Migration**: `001_fix_promoted_index.sql` - Fixed promoted collection index
-
-### Code Issues
-1. **React Hooks**: Added missing `useState` import in `FeedPage.tsx`
-2. **Server/Client Components**: Split animated sections into client components to fix Framer Motion errors
-3. **Redis JSON**: Removed manual JSON parsing (Upstash handles automatically)
-
-### Save System Fixes
-- Fixed save counter not updating on refresh
-- Corrected save count triggers
-- **Migration**: `032_fix_card_saves_count_trigger.sql` - Fixed save count trigger
+### Critical Fixes
+1. **Hydration Errors**: Fixed "nested `<a>` tag" errors in `CardPreview` and `CollectionCard` by implementing an overlay link pattern with z-index layering.
+2. **Legacy Table References**: Fixed `api/comments` and `api/votes` crashing due to "relation stacks does not exist". Updated logic to map legacy `target_type='stack'` to the `collections` table.
+3. **RLS Policies**: Fixed an issue where owners could not see their own private standalone cards. Updated RLS to allow `auth.uid() = created_by`.
+4. **Feed Visibility**: Fixed logic in `ExplorePage` that was inadvertently hiding valid public cards due to overly strict RLS/Query combinations.
+5. **Type Safety**: Resolved TypeScript errors in API routes (`getCommentDepth` implicit any) and notification logic (`targetItem[ownerField]` indexing).
+6. **Code Cleanup**: Removed deprecated `setStacks` placeholder function that was causing runtime errors in `CreateCardModal`.
 
 ---
 
 ## Phase 7: Component Architecture
 
 ### Server vs Client Components
-- **Server Components**: Data fetching, static content (`LandingPage.tsx`)
-- **Client Components**: Interactivity, animations (`HeroSection.tsx`, `HowItWorksSection.tsx`, `TrendingSection.tsx`)
-- Proper separation for optimal performance
-
-### Component Structure
-```
-/components
-  /ui          - Reusable UI components (Button, Card, Dropdown)
-  /landing     - Landing page sections
-  /feed        - Feed and grid components
-  /collection  - Collection-specific components
-  /card        - Card-specific components
-  /layout      - Layout components (Header, Sidebar, Footer)
-```
+- Separated interactive logic (`CardActionsBar`, `ExpandableDescription`) from server-rendered pages (`CardPage`).
+- Optimized `lazy` loading for heavy components like `CommentsSection`.
 
 ---
 
-## Key Migrations Summary
+## Phase 8: Post-MVP Enhancements (Recent Updates)
 
-**Core Schema:**
-- `001_initial_schema.sql` - Base tables
-- `002_rls_policies.sql` - Security policies
-- `003_storage_buckets.sql` - Storage setup
+### 1. Advanced Notifications
+- **New Types**: Added support for `new_card` and `new_collection` notifications.
+- **Logic**: Backend now automatically notifies followers when a user posts public content.
+- **UI**: Updated `NotificationDropdown` to handle new types, added **"Mark as read"** and **"Clear list"** features.
 
-**Features:**
-- `017_follows_table.sql` - Follow system
-- `025_create_saves_table.sql` - Save functionality
-- `026_stackers_and_standalone_cards.sql` - Standalone cards
-- `029_rename_stacks_to_collections.sql` - Naming update
+### 2. Enhanced Card Experience
+- **Dedicated Card Page**: Created `/card/[id]` with a rich, two-column layout.
+  - Left: Full media, metadata, "YouTube-style" Creator info, and comments.
+  - Right: Related resources sidebar.
+- **Interactive Elements**:
+  - `CardActionsBar`: Integrated Upvote, Save, and Share buttons.
+  - `ExpandableDescription`: "Read more" functionality for long text.
+  - `CreatorInfo`: User avatar, name, and **Follow** button directly on the card page.
 
-**Performance:**
-- `011_setup_ranking_refresh.sql` - Ranking refresh
-- `031_create_ranking_system.sql` - Ranking algorithm
-- `033_add_performance_indexes.sql` - Performance indexes
+### 3. Profile & Social
+- **Role-Based Navigation**: Added conditional buttons on the Profile page:
+  - **Creator Dashboard**: Visible only to Stackers/Admins.
+  - **Reports/Ranking**: Visible only to Admins.
+- **Follower/Following Modals**: Clicking stats on the profile header now opens a modal listing the users.
+- **Attribution**: "Created by [User]" links in cards now correctly route to user profiles without triggering card clicks.
 
-**Fixes:**
-- `030_fix_saves_table.sql` - Save table fixes
-- `032_fix_card_saves_count_trigger.sql` - Save count trigger
-- `001_fix_promoted_index.sql` - Index fixes
+### 4. Creator Dashboard (Stacker Pro)
+- **Redesign**: Completely overhauled `/stacker/dashboard` with a modern "Bento Grid" layout.
+- **Visualization**: Integrated `recharts` for Area, Bar, and Pie charts.
+- **Freemium Model**:
+  - **Free**: Basic views, upvotes, and 30-day history.
+  - **Premium (Paywalled)**: Growth Velocity, Conversion Funnel, and 1-year history.
+  - **Paywall UI**: Implemented `PaywallModal` and blurred UI states to upsell Stacq Pro.
 
 ---
 
@@ -290,11 +194,11 @@
 ✅ Core platform functionality (Collections, Cards, Feed, Explore)
 ✅ User interactions (Upvotes, Comments, Saves, Follows)
 ✅ Authentication and user profiles
-✅ Real-time notifications
+✅ Real-time notifications (including New Post alerts)
 ✅ Search functionality
 ✅ UI/UX redesign with emerald green theme
-✅ Responsive design for all pages
-✅ Performance optimizations
+✅ **Creator Dashboard with Analytics & Paywalls**
+✅ **Dedicated Card Details Page**
 ✅ Security and anti-abuse measures
 
 ### Documentation
@@ -302,23 +206,17 @@
 - `docs/Implementation.md` - Implementation tracking
 - `docs/UI_UX_doc.md` - Design system
 - `docs/Bug_tracking.md` - Known issues and solutions
-- `docs/project_structure.md` - Project organization
 
 ---
 
-## Next Steps (Potential)
+## Next Steps
 
-- Browser extension polish
-- Advanced feed personalization
-- Enhanced search with filters
-- Collection templates
-- Social features expansion
-- Analytics dashboard
-- Mobile app development
+- **Monetization**: Connect the "Upgrade" buttons in the dashboard to real Stripe checkout sessions.
+- **Search**: Connect "Related Cards" to vector search for better relevance (currently uses domain matching).
+- **Mobile App**: Wrap the responsive web app into a native container or build React Native version.
 
 ---
 
 **Report Generated:** 2025
-**Platform:** Stacq (Human-curated resource collections)
-**Status:** MVP Complete, Production Ready
-
+**Platform:** Stacq
+**Status:** MVP Complete + Phase 8 Enhancements
