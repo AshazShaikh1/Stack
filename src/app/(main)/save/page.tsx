@@ -1,17 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CreateCardModal } from '@/components/card/CreateCardModal';
 import { createClient } from '@/lib/supabase/client';
 
-export default function SavePage() {
+function SavePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
-  const url = searchParams.get('url');
-  const fileParam = searchParams.get('file');
+  
+  // Safe access with optional chaining, though Suspense makes it safe
+  const url = searchParams?.get('url');
+  const fileParam = searchParams?.get('file');
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -68,3 +70,16 @@ export default function SavePage() {
   );
 }
 
+export default function SavePage() {
+  return (
+    <Suspense 
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="w-8 h-8 border-2 border-jet border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <SavePageContent />
+    </Suspense>
+  );
+}

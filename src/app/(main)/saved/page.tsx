@@ -151,7 +151,7 @@ export default async function SavedPage({ searchParams }: SavedPageProps) {
       <div className="mb-8">
         <h1 className="text-h1 font-bold text-jet-dark mb-2">Saved Items</h1>
         <p className="text-body text-gray-muted mb-6">
-          All the collections and cards you've saved for later
+          All the collections and cards you&apos;ve saved for later
         </p>
 
         {/* Filter Tabs */}

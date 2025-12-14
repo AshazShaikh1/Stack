@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
+import Image from 'next/image';
 
 interface Collection {
   id: string;
@@ -54,7 +55,7 @@ export function StackSelector({
           >
             <div className="flex items-center gap-3">
               {collection.cover_image_url ? (
-                <img
+                <Image
                   src={collection.cover_image_url}
                   alt={collection.title}
                   className="w-12 h-12 rounded-lg object-cover"

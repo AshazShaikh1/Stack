@@ -1,17 +1,19 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Modal } from '@/components/ui/Modal';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { BecomeStackerModal } from '@/components/auth/BecomeStackerModal';
+import { useState, useEffect } from "react";
+import Image from "next/image"; // Import Image
+import { Modal } from "@/components/ui/Modal";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { BecomeStackerModal } from "@/components/auth/BecomeStackerModal";
 
 interface EditStackModalProps {
   isOpen: boolean;
   onClose: () => void;
   stack: {
+    // Renaming to collection internally for consistency, but keeping prop name for now
     id: string;
     title: string;
     description?: string;
@@ -22,47 +24,60 @@ interface EditStackModalProps {
   };
 }
 
-export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) {
+// Renamed to EditCollectionModal to match file name, but exported as EditStackModal for backward compat if needed
+export function EditCollectionModal({
+  isOpen,
+  onClose,
+  stack,
+}: EditStackModalProps) {
   const router = useRouter();
   const [title, setTitle] = useState(stack.title);
-  const [description, setDescription] = useState(stack.description || '');
-  const [tags, setTags] = useState(stack.tags?.map(t => t.name).join(', ') || '');
-  const [visibility, setVisibility] = useState<'public' | 'private' | 'unlisted'>(
-    stack.is_hidden ? 'unlisted' : stack.is_public ? 'public' : 'private'
+  const [description, setDescription] = useState(stack.description || "");
+  const [tags, setTags] = useState(
+    stack.tags?.map((t) => t.name).join(", ") || ""
   );
+  const [visibility, setVisibility] = useState<
+    "public" | "private" | "unlisted"
+  >(stack.is_hidden ? "unlisted" : stack.is_public ? "public" : "private");
   const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(stack.cover_image_url || null);
-  const [error, setError] = useState('');
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(
+    stack.cover_image_url || null
+  );
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showBecomeStacker, setShowBecomeStacker] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [pendingVisibility, setPendingVisibility] = useState<'public' | 'private' | 'unlisted' | null>(null);
+  const [pendingVisibility, setPendingVisibility] = useState<
+    "public" | "private" | "unlisted" | null
+  >(null);
 
   // Reset form when modal opens with new stack data
   useEffect(() => {
     if (isOpen) {
       setTitle(stack.title);
-      setDescription(stack.description || '');
-      setTags(stack.tags?.map(t => t.name).join(', ') || '');
-      setVisibility(stack.is_hidden ? 'unlisted' : stack.is_public ? 'public' : 'private');
+      setDescription(stack.description || "");
+      setTags(stack.tags?.map((t) => t.name).join(", ") || "");
+      setVisibility(
+        stack.is_hidden ? "unlisted" : stack.is_public ? "public" : "private"
+      );
       setCoverImage(null);
       setCoverImagePreview(stack.cover_image_url || null);
-      setError('');
+      setError("");
       setIsLoading(false);
       setShowBecomeStacker(false);
       setPendingVisibility(null);
-      
+
       // Fetch user role
       const supabase = createClient();
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user) {
           supabase
-            .from('users')
-            .select('role')
-            .eq('id', user.id)
+            .from("users")
+            .select("role")
+            .eq("id", user.id)
             .single()
             .then(({ data }) => {
-              setUserRole(data?.role || 'user');
+              setUserRole(data?.role || "user");
             });
         }
       });
@@ -83,15 +98,17 @@ export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!user) {
-        setError('You must be logged in to edit a stack');
+        setError("You must be logged in to edit a collection");
         setIsLoading(false);
         return;
       }
@@ -99,48 +116,53 @@ export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) 
       // Generate slug from title
       const slug = title
         .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
 
       // Upload cover image if provided
       let coverImageUrl = stack.cover_image_url;
       if (coverImage) {
-        const fileExt = coverImage.name.split('.').pop();
+        const fileExt = coverImage.name.split(".").pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
-          .from('cover-images')
+          .from("cover-images")
           .upload(fileName, coverImage);
 
         if (uploadError) {
-          setError('Failed to upload cover image');
+          setError("Failed to upload cover image");
           setIsLoading(false);
           return;
         }
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('cover-images')
-          .getPublicUrl(fileName);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("cover-images").getPublicUrl(fileName);
         coverImageUrl = publicUrl;
       }
 
       // Check if user is trying to publish and is not a stacker
-      if (visibility === 'public' && userRole !== 'stacker' && userRole !== 'admin') {
+      if (
+        visibility === "public" &&
+        userRole !== "stacker" &&
+        userRole !== "admin"
+      ) {
         setPendingVisibility(visibility);
         setShowBecomeStacker(true);
         setIsLoading(false);
         return;
       }
 
-      // Update stack via API (which enforces stacker check)
-      const response = await fetch(`/api/stacks/${stack.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+      // Update collection via API
+      const response = await fetch(`/api/collections/${stack.id}`, {
+        // Updated endpoint
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
           description: description || null,
           slug,
-          is_public: visibility === 'public',
-          is_hidden: visibility === 'unlisted',
+          is_public: visibility === "public",
+          is_hidden: visibility === "unlisted",
           cover_image_url: coverImageUrl,
         }),
       });
@@ -154,40 +176,43 @@ export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) 
           setIsLoading(false);
           return;
         }
-        setError(stackData.error || 'Failed to update stack');
+        setError(stackData.error || "Failed to update collection");
         setIsLoading(false);
         return;
       }
 
-      // Tags are handled separately if needed - for now, API handles basic update
-      // You may need to add a separate API call for tags if the PATCH endpoint doesn't handle them
-
-      // Reset and close
       setIsLoading(false);
       onClose();
       router.refresh();
     } catch (err) {
-      setError('An unexpected error occurred');
+      setError("An unexpected error occurred");
       setIsLoading(false);
     }
   };
 
   const handleClose = () => {
-    setError('');
+    setError("");
     setIsLoading(false);
     onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Edit Stack" size="md">
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Edit Collection"
+      size="md"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Cover Image Preview */}
         {coverImagePreview && (
-          <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
-            <img
+          <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4 bg-gray-100">
+            <Image
               src={coverImagePreview}
               alt="Cover preview"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              unoptimized={!!coverImage} // If it's a blob/file preview, skip optimization
             />
             <button
               type="button"
@@ -195,7 +220,7 @@ export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) 
                 setCoverImage(null);
                 setCoverImagePreview(null);
               }}
-              className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70"
+              className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70 z-10"
             >
               ×
             </button>
@@ -205,7 +230,7 @@ export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) 
         <Input
           type="text"
           label="Title"
-          placeholder="My Awesome Stack"
+          placeholder="My Awesome Collection"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -219,7 +244,7 @@ export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) 
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe what this stack is about..."
+            placeholder="Describe what this collection is about..."
             className="w-full px-4 py-3 rounded-lg border border-gray-light text-body text-jet-dark placeholder:text-gray-muted focus:outline-none focus:ring-2 focus:ring-jet focus:border-transparent disabled:bg-gray-light disabled:cursor-not-allowed resize-none"
             rows={4}
             disabled={isLoading}
@@ -246,14 +271,18 @@ export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) 
                 type="radio"
                 name="visibility"
                 value="public"
-                checked={visibility === 'public'}
+                checked={visibility === "public"}
                 onChange={(e) => setVisibility(e.target.value as any)}
                 className="w-4 h-4 text-jet"
                 disabled={isLoading}
               />
               <div>
-                <div className="text-body font-medium text-jet-dark">Public</div>
-                <div className="text-small text-gray-muted">Anyone can view and discover this stack</div>
+                <div className="text-body font-medium text-jet-dark">
+                  Public
+                </div>
+                <div className="text-small text-gray-muted">
+                  Anyone can view and discover this collection
+                </div>
               </div>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -261,14 +290,18 @@ export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) 
                 type="radio"
                 name="visibility"
                 value="private"
-                checked={visibility === 'private'}
+                checked={visibility === "private"}
                 onChange={(e) => setVisibility(e.target.value as any)}
                 className="w-4 h-4 text-jet"
                 disabled={isLoading}
               />
               <div>
-                <div className="text-body font-medium text-jet-dark">Private</div>
-                <div className="text-small text-gray-muted">Only you can view this stack</div>
+                <div className="text-body font-medium text-jet-dark">
+                  Private
+                </div>
+                <div className="text-small text-gray-muted">
+                  Only you can view this collection
+                </div>
               </div>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -276,14 +309,18 @@ export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) 
                 type="radio"
                 name="visibility"
                 value="unlisted"
-                checked={visibility === 'unlisted'}
+                checked={visibility === "unlisted"}
                 onChange={(e) => setVisibility(e.target.value as any)}
                 className="w-4 h-4 text-jet"
                 disabled={isLoading}
               />
               <div>
-                <div className="text-body font-medium text-jet-dark">Unlisted</div>
-                <div className="text-small text-gray-muted">Only people with the link can view</div>
+                <div className="text-body font-medium text-jet-dark">
+                  Unlisted
+                </div>
+                <div className="text-small text-gray-muted">
+                  Only people with the link can view
+                </div>
               </div>
             </label>
           </div>
@@ -317,11 +354,7 @@ export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) 
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            isLoading={isLoading}
-          >
+          <Button type="submit" variant="primary" isLoading={isLoading}>
             Save Changes
           </Button>
         </div>
@@ -333,28 +366,26 @@ export function EditStackModal({ isOpen, onClose, stack }: EditStackModalProps) 
         onClose={() => {
           setShowBecomeStacker(false);
           // If user declines, revert visibility change
-          if (pendingVisibility === 'public') {
-            setVisibility(stack.is_hidden ? 'unlisted' : stack.is_public ? 'public' : 'private');
+          if (pendingVisibility === "public") {
+            setVisibility(
+              stack.is_hidden
+                ? "unlisted"
+                : stack.is_public
+                ? "public"
+                : "private"
+            );
           }
           setPendingVisibility(null);
         }}
         onSuccess={async () => {
-          // User became stacker, update role and retry update
-          setUserRole('stacker');
+          setUserRole("stacker");
           setShowBecomeStacker(false);
-          
-          // Wait a bit for session to refresh, then retry
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Retry the submit
-          const fakeEvent = {
-            preventDefault: () => {},
-          } as React.FormEvent;
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
           await handleSubmit(fakeEvent);
         }}
-        requiredFields={['display_name', 'short_bio']}
+        requiredFields={["display_name", "short_bio"]}
       />
     </Modal>
   );
 }
-

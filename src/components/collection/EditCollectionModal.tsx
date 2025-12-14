@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { BecomeStackerModal } from '@/components/auth/BecomeStackerModal';
+import Image from 'next/image';
 
 interface EditCollectionModalProps {
   isOpen: boolean;
@@ -184,7 +185,7 @@ export function EditCollectionModal({ isOpen, onClose, collection }: EditCollect
         {/* Cover Image Preview */}
         {coverImagePreview && (
           <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
-            <img
+            <Image
               src={coverImagePreview}
               alt="Cover preview"
               className="w-full h-full object-cover"

@@ -129,7 +129,7 @@ export function SearchAutocomplete() {
 
           {!isLoading && !hasResults && debouncedQuery && (
             <div className="p-4 text-center text-gray-500 text-sm">
-              No results found for "{query}"
+              No results found for &quot;{query}&quot;
             </div>
           )}
 
@@ -223,7 +223,7 @@ export function SearchAutocomplete() {
               onClick={() => setIsOpen(false)}
               className="block p-3 text-center text-sm font-medium text-emerald-600 bg-gray-50 hover:bg-emerald-50 transition-colors border-t border-gray-100"
             >
-              See all results for "{query}"
+              See all results for &quot;{query}&quot;
             </Link>
           )}
         </div>

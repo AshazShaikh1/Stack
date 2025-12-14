@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/contexts/ToastContext';
 import { Link2, Image as ImageIcon, FileText, Upload } from 'lucide-react';
+import Image from "next/image";
 
 interface AddCardModalProps {
   isOpen: boolean;
@@ -235,7 +236,7 @@ export function AddCardModal({ isOpen, onClose, stackId, collectionId }: AddCard
         {/* Thumbnail Preview */}
         {thumbnailUrl && (
           <div className="relative w-full h-48 rounded-input overflow-hidden bg-gray-light">
-            <img
+            <Image
               src={thumbnailUrl}
               alt="Thumbnail preview"
               className="w-full h-full object-cover"

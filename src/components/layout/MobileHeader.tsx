@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { SearchIcon } from '@/components/ui/Icons';
+import Image from "next/image";
 
 export function MobileHeader() {
   const { user } = useAuth();
@@ -46,7 +47,7 @@ export function MobileHeader() {
             <div className="w-8 h-8 rounded-full bg-gray-100 overflow-hidden border border-gray-200">
               {/* 3. Robust Image Rendering */}
               {avatarUrl && !imgError ? (
-                <img 
+                <Image 
                   src={avatarUrl} 
                   alt={username} 
                   className="w-full h-full object-cover"

@@ -14,27 +14,6 @@ import { useVotes } from "@/hooks/useVotes";
 import { generatePlaceholderImage } from "@/lib/utils/placeholder";
 import { useToast } from "@/contexts/ToastContext";
 
-
-export interface CardData {
-  id: string;
-  title: string;
-  description?: string | null;
-  thumbnail_url?: string | null;
-  canonical_url?: string | null;
-  domain?: string | null;
-  upvotes_count?: number;
-  saves_count?: number;
-  created_by?: string | null;
-  type?: 'card' | 'collection';
-  creator?: {
-    id?: string;
-    username?: string | null;
-    display_name?: string | null;
-    avatar_url?: string | null;
-  } | null;
-  metadata?: any;
-}
-
 interface CardPreviewProps {
   card: {
     id: string;

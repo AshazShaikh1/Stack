@@ -1,5 +1,7 @@
 'use client';
 
+import Image from "next/image";
+
 interface FileUploadZoneProps {
   type: 'image' | 'docs';
   file: File | null;
@@ -62,7 +64,7 @@ export function FileUploadZone({
               />
               {imageUrl && (
                 <div className="mt-2 rounded-lg overflow-hidden bg-gray-light">
-                  <img src={imageUrl} alt="Preview" className="w-full h-48 object-cover" />
+                  <Image src={imageUrl} alt="Preview" className="w-full h-48 object-cover" />
                 </div>
               )}
             </div>
@@ -97,7 +99,7 @@ export function FileUploadZone({
             {preview || (type === 'image' && imageUrl) ? (
               <div className="w-full">
                 <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-light mb-3">
-                  <img src={preview || imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <Image src={preview || imageUrl || ''} alt="Preview" className="w-full h-full object-cover" />
                 </div>
                 <p className="text-center text-body text-jet-dark">
                   {file?.name || 'Image from URL'}

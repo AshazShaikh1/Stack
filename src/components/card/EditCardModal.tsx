@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import Image from 'next/image';
 
 interface EditCardModalProps {
   isOpen: boolean;
@@ -104,7 +105,7 @@ export function EditCardModal({ isOpen, onClose, card }: EditCardModalProps) {
         {/* Thumbnail Preview */}
         {thumbnailUrl && (
           <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
-            <img
+            <Image
               src={thumbnailUrl}
               alt="Thumbnail preview"
               className="w-full h-full object-cover"

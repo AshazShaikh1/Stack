@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateOptionsModal } from '@/components/create/CreateOptionsModal';
 import { HomeIcon, ExploreIcon, CreateIcon } from '@/components/ui/Icons';
+import Image from 'next/image';
 
 // Simple Saved Icon
 function SavedIcon({ size = 24 }: { size?: number }) {
@@ -88,7 +89,7 @@ export function MobileNav() {
             <div className={`w-6 h-6 rounded-full overflow-hidden border-2 flex items-center justify-center ${isActive(profileLink) ? 'border-emerald' : 'border-transparent'}`}>
                 {/* 3. Robust Avatar with Fallback */}
                 {user && avatarUrl && !imgError ? (
-                   <img 
+                   <Image 
                      src={avatarUrl} 
                      alt="Profile" 
                      className="w-full h-full object-cover"

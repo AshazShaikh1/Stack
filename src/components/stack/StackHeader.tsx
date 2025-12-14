@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Dropdown } from "@/components/ui/Dropdown";
-import { EditStackModal } from "@/components/stack/EditStackModal";
+import { EditCollectionModal } from "./EditStackModal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useVotes } from "@/hooks/useVotes";
 import { useSaves } from "@/hooks/useSaves";
@@ -323,7 +322,7 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
 
       {/* Modals */}
       {isEditModalOpen && (
-        <EditStackModal
+        <EditCollectionModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
           stack={{

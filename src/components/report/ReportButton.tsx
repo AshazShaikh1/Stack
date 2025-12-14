@@ -102,7 +102,7 @@ export function ReportButton({ targetType, targetId, variant = 'ghost', size = '
               Report Submitted
             </h3>
             <p className="text-body text-gray-muted">
-              Thank you for your report. We'll review it shortly.
+              Thank you for your report. We&apos;ll review it shortly.
             </p>
           </div>
         ) : (

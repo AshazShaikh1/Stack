@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   LineChart,
   Line,
@@ -88,11 +88,7 @@ export function StackerDashboard({ user }: StackerDashboardProps) {
   // Check if user is actually pro (mocked for now, assumes false unless specified)
   const isPro = (user as any).is_pro === true;
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [days]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -109,7 +105,11 @@ export function StackerDashboard({ user }: StackerDashboardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [days]); // Depends on 'days'
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   const handlePremiumClick = (feature: string) => {
     if (!isPro) {
