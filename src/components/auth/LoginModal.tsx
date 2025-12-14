@@ -10,19 +10,14 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginModalProps) {
-  const handleClose = () => {
-    onClose();
-  };
-
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} size="sm">
+    <Modal isOpen={isOpen} onClose={onClose} size="sm" title="Welcome Back">
       <LoginFormContent
-        onSuccess={handleClose}
+        onSuccess={onClose}
         onSwitchToSignup={onSwitchToSignup}
-        showLogo={true}
+        showLogo={false} // Modal has its own title
         isFullPage={false}
       />
     </Modal>
   );
 }
-

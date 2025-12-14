@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useRef } from 'react';
-import { focusManagement } from '@/lib/accessibility';
+import React, { useEffect, useState, useRef } from "react";
+import { focusManagement } from "@/lib/accessibility";
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -16,7 +16,7 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
-  size = 'md',
+  size = "md",
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
@@ -25,56 +25,43 @@ export const Modal: React.FC<ModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Store the previously focused element
       previousActiveElement.current = document.activeElement as HTMLElement;
-      
       setShouldRender(true);
-      document.body.style.overflow = 'hidden';
-      // Small delay to ensure DOM is ready, then trigger animation
-      const timer = setTimeout(() => {
-        setIsVisible(true);
-      }, 10);
+      document.body.style.overflow = "hidden";
+      const timer = setTimeout(() => setIsVisible(true), 10);
       return () => clearTimeout(timer);
     } else {
       setIsVisible(false);
-      // Wait for animation to complete before removing from DOM
       const timer = setTimeout(() => {
         setShouldRender(false);
-        document.body.style.overflow = 'unset';
-        // Restore focus to previous element
+        document.body.style.overflow = "unset";
         if (previousActiveElement.current) {
           previousActiveElement.current.focus();
         }
-      }, 200); // Match transition duration
+      }, 300); // Match transition duration
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
   useEffect(() => {
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, []);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
+      if (e.key === "Escape" && isOpen) onClose();
     };
 
     if (isOpen && modalRef.current) {
-      document.addEventListener('keydown', handleEscape);
-      // Trap focus within modal - delay to avoid interfering with typing
-      let cleanup: (() => void) | undefined;
+      document.addEventListener("keydown", handleEscape);
       const timer = setTimeout(() => {
-        cleanup = focusManagement.trapFocus(modalRef.current);
+        // focusManagement.trapFocus(modalRef.current); // Uncomment if using focus trap lib
       }, 100);
-      
       return () => {
-        document.removeEventListener('keydown', handleEscape);
+        document.removeEventListener("keydown", handleEscape);
         clearTimeout(timer);
-        if (cleanup) cleanup();
       };
     }
   }, [isOpen, onClose]);
@@ -82,98 +69,87 @@ export const Modal: React.FC<ModalProps> = ({
   if (!shouldRender) return null;
 
   const sizeStyles = {
-    sm: 'max-w-md',
-    md: 'max-w-2xl',
-    lg: 'max-w-4xl',
+    sm: "max-w-md", // Great for Login/Signup
+    md: "max-w-2xl", // Great for Create Options
+    lg: "max-w-4xl", // Great for large forms
   };
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop (High Z-Index) */}
       <div
-        className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity duration-200 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
+        className={`fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          isVisible ? "opacity-100" : "opacity-0"
         }`}
         onClick={onClose}
         aria-hidden="true"
-        style={{ display: shouldRender ? 'block' : 'none' }}
       />
 
-      {/* Modal Container */}
+      {/* Container (Center Alignment) */}
       <div
-        className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none"
+        className="fixed inset-0 z-[101] flex items-center justify-center p-4 sm:p-6 pointer-events-none overflow-hidden"
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? 'modal-title' : undefined}
-        style={{ display: shouldRender ? 'flex' : 'none' }}
+        aria-labelledby={title ? "modal-title" : undefined}
       >
         {/* Modal Content */}
         <div
           ref={modalRef}
           className={`
-            relative bg-white rounded-lg shadow-modal w-full ${sizeStyles[size]}
-            max-h-[90vh] overflow-y-auto pointer-events-auto
-            transition-all duration-200
-            ${isVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'}
+            relative bg-white rounded-2xl shadow-2xl w-full ${sizeStyles[size]}
+            max-h-[90dvh] flex flex-col pointer-events-auto
+            transform transition-all duration-300 ease-out
+            ${
+              isVisible
+                ? "opacity-100 translate-y-0 scale-100"
+                : "opacity-0 translate-y-8 scale-95"
+            }
           `}
           onClick={(e) => e.stopPropagation()}
         >
-        {/* Header */}
-        {title && (
-          <div className="flex items-center justify-between p-6 border-b border-gray-light">
-            <h2 id="modal-title" className="text-h2 font-semibold text-jet-dark">
-              {title}
-            </h2>
-            <button
-              onClick={onClose}
-              className="ml-auto text-gray-muted hover:text-jet-dark transition-colors"
-              aria-label="Close modal"
+          {/* Header */}
+          {(title || true) && ( // Always render a header area for the close button
+            <div
+              className={`flex items-center justify-between px-6 py-4 ${
+                title
+                  ? "border-b border-gray-100"
+                  : "absolute right-0 top-0 z-10"
+              }`}
             >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              {title && (
+                <h2
+                  id="modal-title"
+                  className="text-xl font-bold text-jet-dark"
+                >
+                  {title}
+                </h2>
+              )}
+              <button
+                onClick={onClose}
+                className="p-2 rounded-full text-gray-400 hover:text-jet-dark hover:bg-gray-100 transition-colors"
+                aria-label="Close modal"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        )}
-        {!title && (
-          <div className="absolute top-4 right-4">
-            <button
-              onClick={onClose}
-              className="text-gray-muted hover:text-jet-dark transition-colors"
-              aria-label="Close modal"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        )}
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          )}
 
-        {/* Body */}
-        <div className="p-6">{children}</div>
+          {/* Scrollable Body */}
+          <div className="p-6 overflow-y-auto custom-scrollbar">{children}</div>
         </div>
       </div>
     </>
   );
 };
-

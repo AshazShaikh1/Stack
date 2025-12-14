@@ -11,23 +11,19 @@ interface SignupModalProps {
 }
 
 export function SignupModal({ isOpen, onClose, onSwitchToLogin }: SignupModalProps) {
-  const { showSuccess, showInfo } = useToast();
+  const { showSuccess } = useToast();
   
-  const handleClose = () => {
+  const handleSuccess = () => {
+    showSuccess('Account created! Please check your email.');
     onClose();
   };
 
-  const handleSuccess = () => {
-    showSuccess('Account created! Please check your email to confirm your account before signing in.');
-    handleClose();
-  };
-
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} size="sm">
+    <Modal isOpen={isOpen} onClose={onClose} size="sm" title="Join Stacq">
       <SignupFormContent
         onSuccess={handleSuccess}
         onSwitchToLogin={onSwitchToLogin}
-        showLogo={true}
+        showLogo={false}
         isFullPage={false}
       />
     </Modal>
