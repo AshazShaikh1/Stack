@@ -28,7 +28,7 @@ export default async function AdminReportsPage({
   const resolvedSearchParams = await searchParams;
   const currentStatus = resolvedSearchParams.status || "open";
 
-  // Fetch reports with counts for tabs
+  // Fetch reports
   const { data: rawReports, error } = await supabase
     .from("reports")
     .select(
@@ -61,59 +61,67 @@ export default async function AdminReportsPage({
   );
 
   return (
-    <div className="container mx-auto px-page py-section max-w-6xl">
-      <div className="flex justify-between items-end mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-jet-dark mb-2">
-            Moderation Queue
-          </h1>
-          <p className="text-gray-muted">
-            Review and take action on user reports.
-          </p>
+    <div className="min-h-screen bg-white">
+      {/* Responsive Container */}
+      <div className="container mx-auto px-4 md:px-8 py-6 md:py-12 pb-24 md:pb-8">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-jet-dark mb-2">
+              Moderation Queue
+            </h1>
+            <p className="text-gray-500">
+              Review and take action on user reports.
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-light mb-8">
-        {["open", "resolved", "dismissed"].map((tab) => (
-          <Link
-            key={tab}
-            href={`/admin/reports?status=${tab}`}
-            className={`
-              px-6 py-3 text-sm font-medium border-b-2 transition-colors relative top-[2px]
-              ${
-                currentStatus === tab
-                  ? "border-emerald text-emerald"
-                  : "border-transparent text-gray-500 hover:text-jet-dark hover:border-gray-300"
-              }
-            `}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            <span
-              className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                currentStatus === tab
-                  ? "bg-emerald/10 text-emerald"
-                  : "bg-gray-100 text-gray-500"
-              }`}
-            >
-              {counts[tab as keyof typeof counts]}
-            </span>
-          </Link>
-        ))}
-      </div>
+        {/* Scrollable Tabs */}
+        <div className="border-b border-gray-200 mb-8 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="flex gap-2 min-w-max">
+            {["open", "resolved", "dismissed"].map((tab) => (
+              <Link
+                key={tab}
+                href={`/admin/reports?status=${tab}`}
+                className={`
+                  px-4 py-2 text-sm font-medium border-b-2 transition-colors
+                  ${
+                    currentStatus === tab
+                      ? "border-emerald-600 text-emerald-600"
+                      : "border-transparent text-gray-500 hover:text-jet-dark hover:border-gray-300"
+                  }
+                `}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                <span
+                  className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${
+                    currentStatus === tab
+                      ? "bg-emerald-50 text-emerald-600"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {counts[tab as keyof typeof counts]}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
 
-      {filteredReports.length > 0 ? (
-        <ReportsList
-          initialReports={filteredReports}
-          initialStatus={currentStatus}
-        />
-      ) : (
-        <Card className="p-12 text-center border-dashed border-2 border-gray-200 shadow-none bg-gray-50/50">
-          <div className="text-4xl mb-4">✨</div>
-          <h3 className="text-lg font-bold text-jet-dark mb-1">All clear!</h3>
-          <p className="text-gray-muted">No {currentStatus} reports found.</p>
-        </Card>
-      )}
+        {/* Content */}
+        {filteredReports.length > 0 ? (
+          <ReportsList
+            initialReports={filteredReports}
+            initialStatus={currentStatus}
+          />
+        ) : (
+          <div className="p-12 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
+            <div className="text-4xl mb-4">✨</div>
+            <h3 className="text-lg font-bold text-jet-dark mb-1">All clear!</h3>
+            <p className="text-gray-500">No {currentStatus} reports found.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface Report {
   id: string;
@@ -13,7 +13,7 @@ interface Report {
   target_id: string;
   reason: string;
   data: any;
-  status: 'open' | 'resolved' | 'dismissed';
+  status: "open" | "resolved" | "dismissed";
   created_at: string;
   reporter?: {
     id: string;
@@ -28,29 +28,33 @@ interface ReportsListProps {
   initialStatus: string;
 }
 
-export function ReportsList({ initialReports, initialStatus }: ReportsListProps) {
+export function ReportsList({
+  initialReports,
+  initialStatus,
+}: ReportsListProps) {
   const [reports, setReports] = useState<Report[]>(initialReports);
-  const [status, setStatus] = useState(initialStatus);
   const [updating, setUpdating] = useState<string | null>(null);
 
-  const updateReportStatus = async (reportId: string, newStatus: 'resolved' | 'dismissed') => {
+  const updateReportStatus = async (
+    reportId: string,
+    newStatus: "resolved" | "dismissed"
+  ) => {
     setUpdating(reportId);
     try {
       const response = await fetch(`/api/reports/${reportId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update report');
+        throw new Error("Failed to update report");
       }
 
-      // Remove from list if status changed
-      setReports(prev => prev.filter(r => r.id !== reportId));
+      setReports((prev) => prev.filter((r) => r.id !== reportId));
     } catch (error) {
-      console.error('Error updating report:', error);
-      alert('Failed to update report');
+      console.error("Error updating report:", error);
+      alert("Failed to update report");
     } finally {
       setUpdating(null);
     }
@@ -58,48 +62,30 @@ export function ReportsList({ initialReports, initialStatus }: ReportsListProps)
 
   const getTargetLink = (report: Report) => {
     switch (report.target_type) {
-      case 'collection':
-      case 'stack': // Legacy support
+      case "collection":
+      case "stack":
         return `/collection/${report.target_id}`;
-      case 'card':
-        // Cards don't have a direct page, link to search or parent collection
-        return `/search?q=${encodeURIComponent(report.target_id)}&type=cards`;
-      case 'comment':
-        // Comments are on collection pages, would need to fetch parent
-        return '#';
-      case 'user':
+      case "card":
+        return `/card/${report.target_id}`;
+      case "user":
         return `/profile/${report.target_id}`;
       default:
-        return '#';
+        return "#";
     }
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    return new Date(dateString).toLocaleDateString();
   };
-
-  if (reports.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <div className="text-6xl mb-4">📋</div>
-        <h2 className="text-h2 font-semibold text-jet-dark mb-2">
-          No {status} reports
-        </h2>
-        <p className="text-body text-gray-muted">
-          All reports have been reviewed
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
       {reports.map((report) => (
-        <Card key={report.id} className="p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              {/* Report Header */}
+        <Card key={report.id} className="p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            {/* Main Content */}
+            <div className="flex-1 min-w-0">
+              {/* Header: User & Date */}
               <div className="flex items-center gap-3 mb-3">
                 {report.reporter?.avatar_url ? (
                   <Image
@@ -110,72 +96,79 @@ export function ReportsList({ initialReports, initialStatus }: ReportsListProps)
                     className="rounded-full"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-jet/20 flex items-center justify-center text-xs font-semibold text-jet">
-                    {report.reporter?.display_name?.charAt(0).toUpperCase() || '?'}
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
+                    {report.reporter?.display_name?.charAt(0).toUpperCase() ||
+                      "?"}
                   </div>
                 )}
                 <div>
-                  <div className="text-body font-semibold text-jet-dark">
-                    {report.reporter?.display_name || 'Unknown User'}
+                  <div className="text-sm font-semibold text-jet-dark">
+                    {report.reporter?.display_name || "Unknown User"}
                   </div>
-                  <div className="text-small text-gray-muted">
-                    @{report.reporter?.username || 'unknown'} • {formatDate(report.created_at)}
+                  <div className="text-xs text-gray-500">
+                    @{report.reporter?.username || "unknown"} •{" "}
+                    {formatDate(report.created_at)}
                   </div>
                 </div>
               </div>
 
-              {/* Report Details */}
-              <div className="mb-3">
-                <div className="inline-block px-2 py-1 bg-jet/10 rounded-full text-small font-medium text-jet-dark mb-2">
-                  {report.target_type}
+              {/* Report Body */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-medium uppercase text-gray-600">
+                    {report.target_type}
+                  </span>
+                  <Link
+                    href={getTargetLink(report)}
+                    target="_blank"
+                    className="text-xs text-emerald-600 hover:underline"
+                  >
+                    View Target ↗
+                  </Link>
                 </div>
-                <p className="text-body text-jet-dark mb-2">
-                  <span className="font-semibold">Reason:</span> {report.reason}
+
+                <p className="text-sm text-jet-dark font-medium bg-red-50 p-3 rounded-lg border border-red-100">
+                  <span className="text-red-500 font-bold block text-xs uppercase mb-1">
+                    Reason
+                  </span>
+                  {report.reason}
                 </p>
+
                 {report.data && Object.keys(report.data).length > 0 && (
-                  <div className="text-small text-gray-muted">
-                    <pre className="whitespace-pre-wrap bg-gray-light p-2 rounded text-xs">
+                  <details className="mt-2 text-xs text-gray-500 cursor-pointer">
+                    <summary>View metadata</summary>
+                    <pre className="mt-1 bg-gray-50 p-2 rounded overflow-x-auto">
                       {JSON.stringify(report.data, null, 2)}
                     </pre>
-                  </div>
+                  </details>
                 )}
               </div>
-
-              {/* Target Link */}
-              <Link
-                href={getTargetLink(report)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-small text-jet hover:underline"
-              >
-                View {report.target_type} →
-              </Link>
             </div>
 
-            {/* Actions */}
-            {report.status === 'open' && (
-              <div className="flex gap-2">
+            {/* Actions (Full width on mobile, right-aligned on desktop) */}
+            {report.status === "open" ? (
+              <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto pt-2 md:pt-0 border-t md:border-none border-gray-100">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => updateReportStatus(report.id, 'resolved')}
+                  onClick={() => updateReportStatus(report.id, "resolved")}
                   disabled={updating === report.id}
+                  className="flex-1 md:flex-none justify-center text-emerald-600 hover:border-emerald-600 hover:bg-emerald-50"
                 >
-                  {updating === report.id ? '...' : 'Resolve'}
+                  Resolve
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => updateReportStatus(report.id, 'dismissed')}
+                  onClick={() => updateReportStatus(report.id, "dismissed")}
                   disabled={updating === report.id}
+                  className="flex-1 md:flex-none justify-center text-gray-500"
                 >
-                  {updating === report.id ? '...' : 'Dismiss'}
+                  Dismiss
                 </Button>
               </div>
-            )}
-
-            {report.status !== 'open' && (
-              <div className="px-3 py-1 bg-gray-light rounded-full text-small text-gray-muted">
+            ) : (
+              <div className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-500 self-start">
                 {report.status}
               </div>
             )}
@@ -185,4 +178,3 @@ export function ReportsList({ initialReports, initialStatus }: ReportsListProps)
     </div>
   );
 }
-
