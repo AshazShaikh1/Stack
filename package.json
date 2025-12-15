@@ -18,7 +18,7 @@
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.556.0",
     "mixpanel-browser": "^2.72.0",
-    "next": "^15.1.0",
+    "next": "15.5.9",
     "normalize-url": "^8.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
