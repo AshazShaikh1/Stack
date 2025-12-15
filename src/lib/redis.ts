@@ -111,4 +111,12 @@ export async function clearCache(key: string): Promise<void> {
   }
 }
 
+export const CACHE_TTL = {
+  FEED: 60,           // 1 minute
+  EXPLORE: 300,       // 5 minutes
+  COLLECTIONS: 120,   // 2 minutes
+  USER_PROFILE: 300,  // 5 minutes
+  SEARCH: 600,        // 10 minutes
+};
+
 export { redis };

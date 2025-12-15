@@ -2,8 +2,8 @@ import { FeedGrid } from "@/components/feed/FeedGrid";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TrendingStacqerCard } from "@/components/explore/TrendingStacqerCard";
 import { createClient } from "@/lib/supabase/server";
-import { cached } from "@/lib/redis";
-import { getCacheKey, CACHE_TTL } from "@/lib/cache/supabase-cache";
+import { cached, CACHE_TTL } from "@/lib/redis";
+import { getCacheKey } from "@/lib/cache/supabase-cache";
 
 export default async function ExplorePage() {
   const supabase = await createClient();

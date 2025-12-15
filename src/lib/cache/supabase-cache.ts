@@ -1,14 +1,14 @@
-import { redis } from "@/lib/redis";
+import { redis, CACHE_TTL as REDIS_TTL } from "@/lib/redis";
 
-export const CACHE_TTL = 60;
+export const CACHE_TTL = REDIS_TTL;
 
-export function getCacheKey(key: string, params: Record<string, any> = {}): string {
+export function getCacheKey(key: string, params: any = {}) {
   const paramString = Object.entries(params)
     .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
     .map(([key, value]) => `${key}:${value}`)
     .join("|");
-  
-  return `supabase:${key}:${paramString}`;
+
+  return `supabase:${key}:${JSON.stringify(params)}`;
 }
 
 export async function cached<T>(
