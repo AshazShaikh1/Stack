@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { HomeIcon, FeedIcon, ExploreIcon, CreateIcon, MyStacksIcon } from '@/components/ui/Icons';
+import { HomeIcon, FeedIcon, ExploreIcon, CreateIcon } from '@/components/ui/Icons';
 
 // Saved icon (bookmark)
 function SavedIcon({ size = 20 }: { size?: number }) {
@@ -26,7 +26,6 @@ export function Sidebar() {
     { href: '/', icon: HomeIcon, label: 'Home', auth: false },
     { href: '/explore', icon: ExploreIcon, label: 'Explore', auth: false },
     { href: null, icon: CreateIcon, label: 'Create', auth: true, onClick: () => setIsCreateModalOpen(true) },
-    { href: '/my-stacks', icon: MyStacksIcon, label: 'Your Collections', auth: true },
     { href: '/saved', icon: SavedIcon, label: 'Saved', auth: true },
   ];
 

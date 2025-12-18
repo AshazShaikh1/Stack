@@ -231,31 +231,7 @@ export function AccountDropdown({ user }: AccountDropdownProps) {
             </div>
 
             {/* Navigation Links */}
-            <div className="py-2 border-b border-gray-light">
-              <Link
-                href="/my-stacks"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 px-4 py-2 hover:bg-gray-light transition-colors text-left"
-              >
-                <div className="w-8 h-8 rounded-full bg-gray-light flex items-center justify-center flex-shrink-0">
-                  <svg
-                    className="w-4 h-4 text-jet"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                    />
-                  </svg>
-                </div>
-                <div className="text-body font-semibold text-jet-dark">
-                  My Collections
-                </div>
-              </Link>
+              <div className="py-2 border-b border-gray-light">
               {(profile.role === 'stacker' || profile.role === 'admin') && (
                 <Link
                   href="/stacker/dashboard"
