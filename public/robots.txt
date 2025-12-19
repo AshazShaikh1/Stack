@@ -1,9 +1,17 @@
 User-agent: *
 Allow: /
+
+# Block internals
 Disallow: /api/
 Disallow: /dev/
 Disallow: /admin/
 Disallow: /_next/
 
-Sitemap: https://your-domain.com/sitemap.xml
+# Block auth actions from being crawled
+Disallow: /login
+Disallow: /signup
+Disallow: /reset-password
+Disallow: /save
 
+# Sitemap
+Sitemap: https://stacq.vercel.app/sitemap.xml

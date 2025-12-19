@@ -1,6 +1,13 @@
 import { Suspense } from "react";
 import { LoginFormContent } from "@/components/auth/LoginFormContent";
-import { Loader } from "@/components/ui/Loader"; // <--- Import
+import { Loader } from "@/components/ui/Loader";
+import { generateMetadata } from "@/lib/seo";
+
+export const metadata = generateMetadata({
+  title: "Login",
+  description: "Sign in to your account",
+  noIndex: true, // <--- Enforced
+});
 
 export default function LoginPage() {
   return (

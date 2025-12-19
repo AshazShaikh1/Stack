@@ -1,6 +1,13 @@
 import { Suspense } from "react";
 import { SignupFormContent } from "@/components/auth/SignupFormContent";
 import { Loader } from "@/components/ui/Loader"; // <--- Import
+import { generateMetadata } from "@/lib/seo";
+
+export const metadata = generateMetadata({
+  title: "Sign Up",
+  description: "Create a new account",
+  noIndex: true, // <--- Enforced
+});
 
 export default function SignupPage() {
   return (

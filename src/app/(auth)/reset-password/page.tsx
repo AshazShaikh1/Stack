@@ -5,6 +5,13 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import Link from 'next/link';
+import { generateMetadata } from "@/lib/seo";
+
+export const metadata = generateMetadata({
+  title: "Reset Password",
+  description: "Reset your account password",
+  noIndex: true, // <--- Enforced
+});
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState('');

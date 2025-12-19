@@ -7,6 +7,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Suspense } from "react";
 import { CollectionGridSkeleton } from "@/components/ui/Skeleton";
+import { generateMetadata } from "@/lib/seo";
+
+export const metadata = generateMetadata({
+  title: "My Saved Items",
+  noIndex: true, // <--- Enforced (User specific data)
+});
 
 // The data fetching component
 async function SavedFeed({
