@@ -1,31 +1,13 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { requireStacker } from "@/lib/auth/guards";
 import { StackerDashboard } from "@/components/stacker/StackerDashboard";
 
 export default async function StackerDashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  // Check if user is a stacqer or admin
-  const { data: userProfile } = await supabase
-    .from("users")
-    .select("id, role, username, display_name, avatar_url") // FIXED: Added id
-    .eq("id", user.id)
-    .single();
-
-  if (userProfile?.role !== "stacker" && userProfile?.role !== "admin") {
-    redirect("/");
-  }
+  // 1. Centralized Auth Check & Profile Fetch
+  const { profile } = await requireStacker();
 
   return (
     <div className="min-h-screen bg-cloud">
-      <StackerDashboard user={userProfile} />
+      <StackerDashboard user={profile} />
     </div>
   );
 }

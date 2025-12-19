@@ -1,29 +1,14 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { requireAdmin } from "@/lib/auth/guards";
 import { ReportsList } from "@/components/admin/ReportsList";
 import Link from "next/link";
-import { Card } from "@/components/ui/Card";
 
 export default async function AdminReportsPage({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
-  // Check admin role
-  const { data: userProfile } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (userProfile?.role !== "admin") redirect("/");
+  // 1. Centralized Auth Check
+  const { supabase } = await requireAdmin();
 
   const resolvedSearchParams = await searchParams;
   const currentStatus = resolvedSearchParams.status || "open";
@@ -49,7 +34,6 @@ export default async function AdminReportsPage({
       : report.reporter,
   }));
 
-  // Calculate counts for tabs
   const counts = {
     open: reports.filter((r: any) => r.status === "open").length,
     resolved: reports.filter((r: any) => r.status === "resolved").length,
@@ -62,10 +46,7 @@ export default async function AdminReportsPage({
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Responsive Container */}
       <div className="container mx-auto px-4 md:px-8 py-6 md:py-12 pb-24 md:pb-8">
-        
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-jet-dark mb-2">
@@ -77,7 +58,6 @@ export default async function AdminReportsPage({
           </div>
         </div>
 
-        {/* Scrollable Tabs */}
         <div className="border-b border-gray-200 mb-8 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
           <div className="flex gap-2 min-w-max">
             {["open", "resolved", "dismissed"].map((tab) => (
@@ -108,7 +88,6 @@ export default async function AdminReportsPage({
           </div>
         </div>
 
-        {/* Content */}
         {filteredReports.length > 0 ? (
           <ReportsList
             initialReports={filteredReports}
