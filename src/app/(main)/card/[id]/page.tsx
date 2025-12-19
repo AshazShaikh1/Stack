@@ -15,29 +15,24 @@ interface CardPageProps {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({
-  params,
-}: CardPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
 
   const { data: card } = await supabase
     .from("cards")
-    .select("title, description, thumbnail_url")
+    .select("title, description, thumbnail_url, created_by")
     .eq("id", id)
-    .maybeSingle();
+    .single();
 
   if (!card) {
-    return generateSEOMetadata({
-      title: "Card Not Found",
-      description: "The resource you are looking for does not exist.",
-    });
+    return generateSEOMetadata({ title: "Card Not Found", noIndex: true });
   }
 
   return generateSEOMetadata({
-    title: card.title || "Resource",
-    description: card.description || `View resource on Stacq`,
-    image: card.thumbnail_url || undefined,
+    title: card.title,
+    description: card.description || "View this resource on Stacq",
+    image: card.thumbnail_url,
     url: `/card/${id}`,
     type: "article",
   });

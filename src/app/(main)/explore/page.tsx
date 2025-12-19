@@ -2,6 +2,13 @@ import { FeedGrid } from "@/components/feed/FeedGrid";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TrendingStacqerCard } from "@/components/explore/TrendingStacqerCard";
 import { getExploreFeed } from "@/lib/services/exploreService";
+import { generateMetadata } from "@/lib/seo";
+
+export const metadata = generateMetadata({
+  title: "Explore Trending Stacks",
+  description: "See what the community is curating today. Discover top collections and resources.",
+  url: "/explore",
+});
 
 export default async function ExplorePage() {
   const { todayTrending, trendingStacqers, weekTrending } =

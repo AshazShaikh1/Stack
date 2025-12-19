@@ -1,49 +1,72 @@
 import { Metadata } from "next";
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://stacq.app";
+const SITE_NAME = "Stacq";
+const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`; // Ensure this file exists in /public
+
 interface SEOProps {
   title?: string;
   description?: string;
   image?: string;
-  url?: string;
-  type?: "website" | "article";
+  url?: string; // Relative path (e.g., "/explore")
+  type?: "website" | "article" | "profile";
   publishedTime?: string;
   author?: string;
-  noIndex?: boolean; // <--- New Prop
+  noIndex?: boolean;
 }
 
 export function generateMetadata({
   title,
   description,
   image,
-  url,
+  url = "/",
   type = "website",
   publishedTime,
   author,
-  noIndex = false, // Default to indexable
+  noIndex = false,
 }: SEOProps): Metadata {
-  const siteName = "Stacq";
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://stacq.app";
-  const fullTitle = title ? `${title} | ${siteName}` : siteName;
+  const fullTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
   const fullDescription =
-    description || "Discover and share curated resources with the community";
-  const fullImage = image || `${siteUrl}/og-image.png`;
-  const fullUrl = url ? `${siteUrl}${url}` : siteUrl;
+    description || "Discover and share curated resources with the community.";
+
+  // Ensure image is absolute URL
+  const fullImage = image
+    ? image.startsWith("http")
+      ? image
+      : `${SITE_URL}${image}`
+    : DEFAULT_OG_IMAGE;
+
+  // Clean URL (remove trailing slash, ensure absolute)
+  const cleanPath = url === "/" ? "" : url.replace(/\/$/, "");
+  const canonicalUrl = `${SITE_URL}${cleanPath}`;
+
+  if (noIndex) {
+    return {
+      title: fullTitle,
+      robots: { index: false, follow: false },
+    };
+  }
 
   return {
     title: fullTitle,
     description: fullDescription,
+    applicationName: SITE_NAME,
+    metadataBase: new URL(SITE_URL), // Critical for resolving relative OG images
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       type,
       title: fullTitle,
       description: fullDescription,
-      url: fullUrl,
-      siteName,
+      url: canonicalUrl,
+      siteName: SITE_NAME,
       images: [
         {
           url: fullImage,
           width: 1200,
           height: 630,
-          alt: title || siteName,
+          alt: fullTitle,
         },
       ],
       ...(publishedTime && { publishedTime }),
@@ -54,26 +77,7 @@ export function generateMetadata({
       title: fullTitle,
       description: fullDescription,
       images: [fullImage],
+      creator: "@stacq_app", // Update with your handle
     },
-    alternates: {
-      canonical: fullUrl,
-    },
-    // <--- Enforce Robot Rules Here
-    robots: noIndex
-      ? {
-          index: false,
-          follow: false,
-        }
-      : {
-          index: true,
-          follow: true,
-          googleBot: {
-            index: true,
-            follow: true,
-            "max-video-preview": -1,
-            "max-image-preview": "large",
-            "max-snippet": -1,
-          },
-        },
   };
 }

@@ -10,6 +10,10 @@ import type { Metadata } from "next";
 import { Suspense, lazy } from "react";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
 const CommentsSection = lazy(() =>
   import("@/components/comments/CommentsSection").then((m) => ({
     default: m.CommentsSection,
@@ -20,37 +24,33 @@ interface CollectionPageProps {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({
-  params,
-}: CollectionPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
 
-  const isUUID =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-
-  const query = supabase
+  const { data: collection } = await supabase
     .from("collections")
-    .select("title, description, cover_image_url, is_public, is_hidden");
+    .select("title, description, cover_image_url, owner:users(display_name)")
+    .eq("id", id)
+    .single();
 
-  const { data: collection } = await (isUUID
-    ? query.eq("id", id)
-    : query.eq("slug", id)
-  ).maybeSingle();
-
-  if (!collection || (!collection.is_public && collection.is_hidden)) {
-    return generateSEOMetadata({
-      title: "Not Found",
-      description: "Collection not found",
-    });
+  if (!collection) {
+    // Use the renamed function
+    return generateSEOMetadata({ title: "Collection Not Found", noIndex: true });
   }
+
+  // FIX 2: Supabase joins often return arrays. Access the first item safely.
+  // We cast to 'any' to handle the mismatch between inferred types and actual data
+  const owner = collection.owner as any;
+  const ownerName = Array.isArray(owner) ? owner[0]?.display_name : owner?.display_name;
 
   return generateSEOMetadata({
     title: collection.title,
-    description: collection.description || `View ${collection.title}`,
-    image: collection.cover_image_url || undefined,
+    description: collection.description || `Curated collection by ${ownerName}`,
+    image: collection.cover_image_url,
     url: `/collection/${id}`,
     type: "article",
+    author: ownerName,
   });
 }
 
@@ -197,3 +197,4 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
     notFound();
   }
 }
+
