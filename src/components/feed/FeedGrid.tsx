@@ -1,5 +1,3 @@
-"use client";
-
 import { FeedItem } from "./FeedItem";
 import { CollectionGridSkeleton } from "@/components/ui/Skeleton";
 import { EmptyStacksState } from "@/components/ui/EmptyState";

@@ -1,5 +1,3 @@
-"use client";
-
 import { CollectionCard } from "@/components/collection/CollectionCard";
 import { CardPreview } from "@/components/card/CardPreview";
 

@@ -1,5 +1,3 @@
-"use client";
-
 import { Suspense } from "react";
 import { SignupFormContent } from "@/components/auth/SignupFormContent";
 import { Loader } from "@/components/ui/Loader"; // <--- Import
