@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
 import { Inter } from 'next/font/google';
 import "./globals.css";
-
-// Components
 import { LayoutWrapper } from "@/components/layout/LayoutWrapper";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { SuppressMixpanelErrors } from "@/components/SuppressMixpanelErrors";
-
-// Contexts
 import { ToastProvider } from "@/contexts/ToastContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LandingPageButtonsProvider } from "@/components/landing/LandingPageButtons";
-
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {

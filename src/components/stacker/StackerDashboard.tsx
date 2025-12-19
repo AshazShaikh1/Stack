@@ -21,7 +21,6 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { PaywallModal } from "./PaywallModal";
 
 interface StackerDashboardProps {
   user: {
@@ -449,13 +448,6 @@ export function StackerDashboard({ user }: StackerDashboardProps) {
           </div>
         </Card>
       </div>
-
-      {/* Paywall Modal */}
-      <PaywallModal
-        isOpen={isPaywallOpen}
-        onClose={() => setIsPaywallOpen(false)}
-        featureName={paywallFeature}
-      />
     </div>
   );
 }
