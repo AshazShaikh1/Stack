@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/api";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { cachedJsonResponse } from "@/lib/cache/headers";
-import { cached } from "@/lib/redis";
-import { getCacheKey, CACHE_TTL } from "@/lib/cache/supabase-cache";
+import { cached, CacheKeys, CACHE_TTL } from "@/lib/cache";
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
     const cursor = searchParams.get("cursor"); // Cursor for pagination
 
     // Generate cache key
-    const cacheKey = getCacheKey("feed", {
+    const cacheKey = CacheKeys.generic("feed", {
       type,
       mix: mixParam,
       limit,
@@ -40,7 +39,7 @@ export async function GET(request: NextRequest) {
           cursor
         );
       },
-      CACHE_TTL.FEED // <--- FIX: Access the specific TTL property
+      CACHE_TTL.SHORT // <--- FIX: Access the specific TTL property
     );
 
     // Return with cache headers

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
 import { cachedJsonResponse } from '@/lib/cache/headers';
-import { cached } from '@/lib/redis';
-import { getCacheKey, CACHE_TTL } from '@/lib/cache/supabase-cache';
+import { cached, CacheKeys, CACHE_TTL } from '@/lib/cache';
 
 export async function GET(request: NextRequest) {
   try {
