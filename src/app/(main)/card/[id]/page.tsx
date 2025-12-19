@@ -1,37 +1,40 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/server";
 import { CommentsSection } from "@/components/comments/CommentsSection";
 import { ExpandableDescription } from "@/components/card/ExpandableDescription";
 import { CreatorInfo } from "@/components/card/CreatorInfo";
 import { CardPreview } from "@/components/card/CardPreview";
 import { CardActionsBar } from "@/components/card/CardActionsBar";
-import { generateMetadata as generateSEOMetadata } from "@/lib/seo";
-import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
+import { Metadata } from "next";
+import { generateMetadata as constructMetadata } from "@/lib/seo";
+import { createClient } from "@/lib/supabase/server";
 
 interface CardPageProps {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+export async function generateMetadata({
+  params,
+}: CardPageProps): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
 
+  // ... fetch logic ...
   const { data: card } = await supabase
     .from("cards")
-    .select("title, description, thumbnail_url, created_by")
+    .select("title, description, thumbnail_url")
     .eq("id", id)
     .single();
 
   if (!card) {
-    return generateSEOMetadata({ title: "Card Not Found", noIndex: true });
+    return constructMetadata({ title: "Card Not Found", noIndex: true });
   }
 
-  return generateSEOMetadata({
+  return constructMetadata({
     title: card.title,
-    description: card.description || "View this resource on Stacq",
+    description: card.description,
     image: card.thumbnail_url,
     url: `/card/${id}`,
     type: "article",

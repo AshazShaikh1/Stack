@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import { LoginFormContent } from "@/components/auth/LoginFormContent";
 import { Loader } from "@/components/ui/Loader";
-import { generateMetadata } from "@/lib/seo";
+import { generateMetadata as constructMetadata } from "@/lib/seo";
 
-export const metadata = generateMetadata({
+export const metadata = constructMetadata({
   title: "Login",
   description: "Sign in to your account",
   noIndex: true, // <--- Enforced
