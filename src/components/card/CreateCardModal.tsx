@@ -46,6 +46,8 @@ export function CreateCardModal({
   const [docsFile, setDocsFile] = useState<File | null>(null);
 
   const [visibility, setVisibility] = useState<StackVisibility>("private");
+
+  // Note: We keep these for the OptionalStep props, but we prioritize 'imageUrl' for the actual cover
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(
     null
@@ -72,7 +74,7 @@ export function CreateCardModal({
   const descriptionRef = useRef("");
   const metadataUrlRef = useRef("");
 
-  /* ================= RESET (ANIMATION SAFE) ================= */
+  /* ================= RESET ================= */
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
@@ -193,8 +195,9 @@ export function CreateCardModal({
               setDescription(data.description);
               descriptionRef.current = data.description;
             }
-            if (data.thumbnail_url && !coverImagePreview) {
-              setCoverImagePreview(data.thumbnail_url);
+            // Only set if we don't already have one (e.g. from upload)
+            if (data.thumbnail_url && !imageUrl && !coverImagePreview) {
+              setImageUrl(data.thumbnail_url);
             }
           }
         }
@@ -204,7 +207,7 @@ export function CreateCardModal({
         setIsFetchingMetadata(false);
       }
     },
-    [coverImagePreview]
+    [imageUrl, coverImagePreview]
   );
 
   useEffect(() => {
@@ -253,15 +256,10 @@ export function CreateCardModal({
   const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith("image/")) {
-        setError("Please select an image file");
-        return;
-      }
       setCoverImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setCoverImagePreview(reader.result as string);
       reader.readAsDataURL(file);
-      setError("");
     }
   };
 
@@ -270,7 +268,8 @@ export function CreateCardModal({
     if (cardType === "link" && !url.trim()) return setError("URL is required");
     if (!title.trim()) return setError("Title is required");
 
-    if (cardType === "link" && (!titleRef.current || !coverImagePreview)) {
+    if (cardType === "link" && (!titleRef.current || !imageUrl)) {
+      // Try fetch one last time if missing info
       await fetchMetadata(url);
     }
 
@@ -297,10 +296,10 @@ export function CreateCardModal({
       const { data } = await supabase.auth.getUser();
       if (!data.user) throw new Error("Not logged in");
 
-      // Upload Images
+      // 1. Determine Main Card URL
       let finalCardUrl = url;
-      let finalThumbnailUrl = coverImagePreview || undefined;
 
+      // If Card Type is Image -> Upload main image
       if (cardType === "image" && imageFile) {
         const fileName = `cards/${data.user.id}/${Date.now()}_${
           imageFile.name
@@ -310,9 +309,13 @@ export function CreateCardModal({
           .from("thumbnails")
           .getPublicUrl(fileName);
         finalCardUrl = publicUrl.publicUrl;
-        if (!finalThumbnailUrl) finalThumbnailUrl = publicUrl.publicUrl;
       }
 
+      // 2. Determine Thumbnail/Cover
+      // Priority: 1. imageUrl (from Step 2 Upload/Metadata) -> 2. coverImageFile (Step 3) -> 3. finalCardUrl (if image card)
+      let finalThumbnailUrl = imageUrl;
+
+      // Fallback: If user uploaded a specific cover in "Optional" step, upload it
       if (coverImageFile) {
         const fileName = `covers/${data.user.id}/${Date.now()}_cover_${
           coverImageFile.name
@@ -324,6 +327,11 @@ export function CreateCardModal({
           .from("thumbnails")
           .getPublicUrl(fileName);
         finalThumbnailUrl = publicUrl.publicUrl;
+      }
+
+      // Fallback: If no thumbnail yet, but it's an image card, use the card image
+      if (!finalThumbnailUrl && cardType === "image") {
+        finalThumbnailUrl = finalCardUrl;
       }
 
       const res = await fetch("/api/cards", {
@@ -346,15 +354,11 @@ export function CreateCardModal({
       }
 
       const result = await res.json();
-      const eventCardType: "link" | "image" | "document" =
-        cardType === "docs"
-          ? "document"
-          : (cardType as "link" | "image" | "document");
       trackEvent.addCard(
         data.user.id,
         result.card.id,
         selectedCollectionId,
-        eventCardType
+        cardType as any
       );
 
       showSuccess("Card created");
@@ -368,7 +372,6 @@ export function CreateCardModal({
     }
   };
 
-  /* ================= UI ================= */
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <div className="relative min-h-[420px]">
@@ -404,6 +407,7 @@ export function CreateCardModal({
             isFetchingMetadata={isFetchingMetadata}
             imageFile={imageFile}
             imagePreview={imagePreview}
+            // Use imageUrl for both preview and result
             imageUrl={imageUrl}
             onImageUrlChange={setImageUrl}
             isDraggingImage={isDraggingImage}
@@ -445,9 +449,10 @@ export function CreateCardModal({
               const file = e.target.files?.[0];
               if (file) handleFileSelect(file, "docs");
             }}
-            // Not used in this step anymore, but required by props
             isPublic={visibility === "public"}
-            onIsPublicChange={() => {}}
+            onIsPublicChange={(checked) =>
+              setVisibility(checked ? "public" : "private")
+            }
             canMakePublic={isStacker}
           />
         )}
@@ -513,7 +518,9 @@ export function CreateCardModal({
         onSuccess={() => {
           setIsStacker(true);
           setShowBecomeStacker(false);
-          handleOptionalNext();
+          // FIX: Directly trigger next logic instead of relying on stale state
+          fetchCollections();
+          setStep("stack");
         }}
       />
     </Modal>

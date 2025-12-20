@@ -10,14 +10,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     const typeParam = searchParams.get("type") || "both";
-    // Support legacy 'stack' type, convert to 'collection'
     const type = typeParam === "stack" ? "collection" : typeParam;
     const mixParam = searchParams.get("mix") || "cards:0.6,collections:0.4";
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
-    const cursor = searchParams.get("cursor"); // Cursor for pagination
+    const cursor = searchParams.get("cursor");
 
-    // Generate cache key
     const cacheKey = CacheKeys.generic("feed", {
       type,
       mix: mixParam,
@@ -26,7 +24,6 @@ export async function GET(request: NextRequest) {
       cursor: cursor || "none",
     });
 
-    // Use Redis cache with 60s TTL
     const cachedResult = await cached(
       cacheKey,
       async () => {
@@ -39,26 +36,19 @@ export async function GET(request: NextRequest) {
           cursor
         );
       },
-      CACHE_TTL.SHORT // <--- FIX: Access the specific TTL property
+      CACHE_TTL.SHORT
     );
 
-    // Return with cache headers
     return cachedJsonResponse(cachedResult, "PUBLIC_READ");
   } catch (error: any) {
-    // Only log critical errors in production
     console.error("Error in feed route:", error);
     return NextResponse.json(
-      {
-        error: "Internal server error",
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-/**
- * Fetch feed data (extracted for caching)
- */
 async function fetchFeedData(
   supabase: any,
   type: string,
@@ -67,13 +57,10 @@ async function fetchFeedData(
   offset: number,
   cursor: string | null
 ) {
-  // Parse mix ratios
   const mixRatios: Record<string, number> = {};
   mixParam.split(",").forEach((part) => {
     const [key, value] = part.split(":");
-    if (key && value) {
-      mixRatios[key.trim()] = parseFloat(value.trim());
-    }
+    if (key && value) mixRatios[key.trim()] = parseFloat(value.trim());
   });
 
   const cardsRatio = mixRatios.cards || 0.6;
@@ -99,12 +86,13 @@ async function fetchFeedData(
   const results: any[] = [];
   const useNewRanking = isFeatureEnabled("ranking/final-algo");
 
-  // Fetch ranked cards
+  // --- FETCH CARDS ---
   if (type === "card" || type === "both") {
     let rankedItems: any[] = [];
     let itemsError: any = null;
     let cardIds: string[] = [];
 
+    // 1. Get IDs from Ranking System
     if (useNewRanking) {
       let query = supabase
         .from("ranking_scores")
@@ -124,9 +112,7 @@ async function fetchFeedData(
               `norm_score.lt.${score},and(norm_score.eq.${score},last_event_at.lt.${cursorTimestamp})`
             );
           }
-        } catch (e) {
-          // Ignore invalid cursor
-        }
+        } catch (e) {}
       }
 
       const { data, error } = await query;
@@ -134,7 +120,6 @@ async function fetchFeedData(
       itemsError = error;
       cardIds = rankedItems.map((item) => item.item_id);
     } else {
-      // Legacy fallback
       const { data, error } = await supabase
         .from("explore_ranking_items")
         .select("item_id, norm_score")
@@ -144,18 +129,19 @@ async function fetchFeedData(
 
       rankedItems = data || [];
       itemsError = error;
-      if (!itemsError && rankedItems && rankedItems.length > 0) {
+      if (!itemsError && rankedItems) {
         cardIds = rankedItems.map((item) => item.item_id);
       }
     }
 
-    // Fallback: recent
+    // 2. Fallback: Recent Standalone Cards
     if (cardIds.length === 0) {
       const { data: recentCards } = await supabase
         .from("cards")
         .select("id")
         .eq("is_public", true)
         .eq("status", "active")
+        .is("collection_id", null) // <--- FIX: Only fetch standalone cards
         .order("created_at", { ascending: false })
         .limit(cardsLimit);
 
@@ -164,64 +150,37 @@ async function fetchFeedData(
       }
     }
 
+    // 3. Fetch Full Card Details
     if (cardIds.length > 0) {
       const { data: cards } = await supabase
         .from("cards")
         .select(
           `
-            id,
-            canonical_url,
-            title,
-            description,
-            thumbnail_url,
-            domain,
-            is_public,
-            visits_count,
-            saves_count,
-            upvotes_count,
-            comments_count,
-            created_at,
-            created_by,
-            creator:users!cards_created_by_fkey (
-              id,
-              username,
-              display_name,
-              avatar_url
-            )
-          `
+            id, canonical_url, title, description, thumbnail_url, domain, is_public,
+            visits_count, saves_count, upvotes_count, comments_count, created_at, created_by,
+            creator:users!cards_created_by_fkey ( id, username, display_name, avatar_url )
+        `
         )
         .in("id", cardIds)
-        .eq("is_public", true);
+        .eq("is_public", true)
+        .is("collection_id", null); // <--- FIX: Filter out any ranked cards that are in collections
 
       if (cards && cards.length > 0) {
-        // ... (Skipped optimization logic for brevity, kept essential fetching) ...
-
         // Fetch attributions
         const { data: attributions } = await supabase
           .from("card_attributions")
           .select(
             `
-              id,
-              card_id,
-              user_id,
-              source,
-              collection_id,
-              created_at,
-              user:users!card_attributions_user_id_fkey (
-                id,
-                username,
-                display_name,
-                avatar_url
-              )
-            `
+              id, card_id, user_id, source, collection_id, created_at,
+              user:users!card_attributions_user_id_fkey ( id, username, display_name, avatar_url )
+          `
           )
           .in("card_id", cardIds);
 
         const attributionsMap = new Map();
         attributions?.forEach((attr: { card_id: any }) => {
-          if (!attributionsMap.has(attr.card_id)) {
+          if (!attributionsMap.has(attr.card_id))
             attributionsMap.set(attr.card_id, []);
-          }
           attributionsMap.get(attr.card_id).push(attr);
         });
 
@@ -247,7 +206,7 @@ async function fetchFeedData(
     }
   }
 
-  // Fetch ranked collections
+  // --- FETCH COLLECTIONS (Unchanged) ---
   if (type === "collection" || type === "both") {
     let rankedItems: any[] = [];
     let itemsError: any = null;
@@ -271,20 +230,14 @@ async function fetchFeedData(
           query = query.or(
             `norm_score.lt.${score},and(norm_score.eq.${score},last_event_at.lt.${timestamp})`
           );
-        } catch (e) {
-          // Ignore
-        }
+        } catch (e) {}
       }
 
       const { data, error } = await query;
       rankedItems = data || [];
       itemsError = error;
-
-      if (rankedItems && rankedItems.length > 0) {
-        collectionIds = rankedItems.map((item) => item.item_id);
-      }
+      if (rankedItems) collectionIds = rankedItems.map((item) => item.item_id);
     } else {
-      // Legacy fallback
       const { data, error } = await supabase
         .from("explore_ranking_items")
         .select("item_id, norm_score")
@@ -294,12 +247,10 @@ async function fetchFeedData(
 
       rankedItems = data || [];
       itemsError = error;
-      if (!itemsError && rankedItems && rankedItems.length > 0) {
+      if (!itemsError && rankedItems)
         collectionIds = rankedItems.map((item) => item.item_id);
-      }
     }
 
-    // Fallback: recent
     if (collectionIds.length === 0) {
       const { data: recentCollections } = await supabase
         .from("collections")
@@ -309,9 +260,8 @@ async function fetchFeedData(
         .order("created_at", { ascending: false })
         .limit(collectionsLimit);
 
-      if (recentCollections && recentCollections.length > 0) {
+      if (recentCollections)
         collectionIds = recentCollections.map((c: { id: any }) => c.id);
-      }
     }
 
     if (collectionIds.length > 0) {
@@ -319,37 +269,16 @@ async function fetchFeedData(
         .from("collections")
         .select(
           `
-            id,
-            title,
-            description,
-            slug,
-            cover_image_url,
-            is_public,
-            stats,
-            created_at,
-            owner_id,
-            owner:users!collections_owner_id_fkey (
-              id,
-              username,
-              display_name,
-              avatar_url
-            ),
-            tags:collection_tags (
-              tag:tags (
-                id,
-                name
-              )
-            )
-          `
+            id, title, description, slug, cover_image_url, is_public, stats, created_at, owner_id,
+            owner:users!collections_owner_id_fkey ( id, username, display_name, avatar_url ),
+            tags:collection_tags ( tag:tags ( id, name ) )
+        `
         )
         .in("id", collectionIds)
         .eq("is_public", true)
         .eq("is_hidden", false);
 
       if (collections && collections.length > 0) {
-        // Fetch first card thumbnails logic...
-        // (Simplified for brevity, same logic as before)
-
         const scoreMap = new Map(
           rankedItems?.map((item) => [item.item_id, item.norm_score]) || []
         );
@@ -372,8 +301,6 @@ async function fetchFeedData(
             ...collection,
             tags,
             stats,
-            // first_card_thumbnail_url would go here
-            collection_cards: undefined,
             score: scoreMap.get(collection.id) || 0,
             last_event_at: eventMap.get(collection.id) || null,
           });
@@ -382,7 +309,7 @@ async function fetchFeedData(
     }
   }
 
-  // Sort and Dedupe
+  // --- SORT & DEDUPE ---
   const sortedResults = results.sort((a, b) => {
     const scoreDiff = (b.score || 0) - (a.score || 0);
     if (Math.abs(scoreDiff) < 0.0001) {
@@ -409,7 +336,6 @@ async function fetchFeedData(
 
   const finalFeed = dedupedResults.slice(0, limit);
 
-  // Next cursor
   let nextCursor: string | null = null;
   if (finalFeed.length > 0 && finalFeed.length === limit) {
     const lastItem = finalFeed[finalFeed.length - 1];

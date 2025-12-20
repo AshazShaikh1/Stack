@@ -28,7 +28,6 @@ export function CreateCollectionModal({
   const router = useRouter();
   const { showSuccess, showError } = useToast();
 
-  /* ================= STATE ================= */
   const [step, setStep] = useState<Step>("basic");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -45,7 +44,6 @@ export function CreateCollectionModal({
   const [showBecomeStacker, setShowBecomeStacker] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  /* ================= RESET (ANIMATION SAFE) ================= */
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
@@ -64,28 +62,22 @@ export function CreateCollectionModal({
     }
   }, [isOpen]);
 
-  /* ================= ROLE ================= */
   useEffect(() => {
     if (!isOpen) return;
-
     const loadRole = async () => {
       const supabase = createClient();
       const { data } = await supabase.auth.getUser();
       if (!data.user) return;
-
       const { data: profile } = await supabase
         .from("users")
         .select("role")
         .eq("id", data.user.id)
         .single();
-
       setUserRole(profile?.role || "user");
     };
-
     loadRole();
   }, [isOpen]);
 
-  /* ================= IMAGE HELPERS ================= */
   const handleFileSelect = (file: File) => {
     if (!file.type.startsWith("image/")) {
       setError("Please select an image file");
@@ -102,12 +94,10 @@ export function CreateCollectionModal({
     e.preventDefault();
     setIsDragging(true);
   };
-
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
   };
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -115,8 +105,8 @@ export function CreateCollectionModal({
     if (file) handleFileSelect(file);
   };
 
-  /* ================= SUBMIT ================= */
-  const handleSubmit = async () => {
+  // FIX: Added optional param to skip check during recursive call
+  const handleSubmit = async (skipRoleCheck = false) => {
     setError("");
     setIsLoading(true);
 
@@ -126,6 +116,7 @@ export function CreateCollectionModal({
       if (!data.user) throw new Error("You must be logged in");
 
       if (
+        !skipRoleCheck &&
         visibility === "public" &&
         userRole !== "stacker" &&
         userRole !== "admin"
@@ -135,13 +126,11 @@ export function CreateCollectionModal({
         return;
       }
 
-      // Slug
       const slug = title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
 
-      // Upload image
       let coverImageUrl: string | null = null;
       if (coverImage) {
         const ext = coverImage.name.split(".").pop();
@@ -149,13 +138,10 @@ export function CreateCollectionModal({
         const { error: uploadError } = await supabase.storage
           .from("cover-images")
           .upload(fileName, coverImage);
-
         if (uploadError) throw new Error("Failed to upload image");
-
         const { data: urlData } = supabase.storage
           .from("cover-images")
           .getPublicUrl(fileName);
-
         coverImageUrl = urlData.publicUrl;
       }
 
@@ -175,6 +161,7 @@ export function CreateCollectionModal({
 
       const result = await response.json();
       if (!response.ok) {
+        // Fallback for server-side check
         if (response.status === 403 && result.become_stacker_required) {
           setShowBecomeStacker(true);
           setIsLoading(false);
@@ -202,7 +189,6 @@ export function CreateCollectionModal({
     }
   };
 
-  /* ================= UI ================= */
   return (
     <Modal
       isOpen={isOpen}
@@ -210,9 +196,7 @@ export function CreateCollectionModal({
       title="Create Collection"
       size="md"
     >
-      {/* Mobile-first: allow vertical scrolling and avoid clipping footer buttons/cover image */}
       <div className="relative min-h-[60vh] md:min-h-[450px]">
-        {/* Step 1 */}
         <div
           className={`absolute inset-0 transition-transform duration-300 ${
             step === "basic"
@@ -238,7 +222,6 @@ export function CreateCollectionModal({
           />
         </div>
 
-        {/* Step 2 */}
         <div
           className={`absolute inset-0 transition-transform duration-300 ${
             step === "details"
@@ -261,7 +244,7 @@ export function CreateCollectionModal({
             error={error}
             isLoading={isLoading}
             onBack={() => setStep("basic")}
-            onSubmit={handleSubmit}
+            onSubmit={() => handleSubmit(false)}
           />
         </div>
       </div>
@@ -270,12 +253,13 @@ export function CreateCollectionModal({
         isOpen={showBecomeStacker}
         onClose={() => {
           setShowBecomeStacker(false);
-          if (visibility === "public") setVisibility("private");
+          // Don't downgrade visibility on close, let user decide
         }}
         onSuccess={() => {
           setUserRole("stacker");
           setShowBecomeStacker(false);
-          handleSubmit();
+          // FIX: Pass true to skip role check since we just became a Stacker
+          handleSubmit(true);
         }}
       />
     </Modal>

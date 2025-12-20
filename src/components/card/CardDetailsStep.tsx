@@ -1,9 +1,11 @@
 'use client';
 
-import { memo, useRef, useEffect } from 'react';
+import { memo, useRef, useEffect, useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { FileUploadZone } from './FileUploadZone';
+import { createClient } from '@/lib/supabase/client';
+import { Loader } from '@/components/ui/Loader';
 import type { CardType } from '@/types';
 
 interface CardDetailsStepProps {
@@ -37,7 +39,6 @@ interface CardDetailsStepProps {
   isPublic: boolean;
   onIsPublicChange: (isPublic: boolean) => void;
   canMakePublic: boolean;
-  // FIXED: Added this missing prop definition
   onFetchMetadata: () => void;
 }
 
@@ -79,6 +80,10 @@ export const CardDetailsStep = memo(function CardDetailsStep({
   const focusedInputIdRef = useRef<string | null>(null);
   const cursorPositionRef = useRef<number>(0);
 
+  // New State for Cover Image Toggle
+  const [coverMode, setCoverMode] = useState<'url' | 'upload'>('url');
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+
   // Restore focus after re-render if an input was focused
   useEffect(() => {
     if (focusedInputIdRef.current) {
@@ -112,11 +117,39 @@ export const CardDetailsStep = memo(function CardDetailsStep({
     onDescriptionChange(e.target.value);
   };
 
+  // Handle Cover Image Upload
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingCover(true);
+    try {
+      const supabase = createClient();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `card-covers/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('images') 
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+      onImageUrlChange(data.publicUrl);
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
   return (
     <form onSubmit={(e) => { e.preventDefault(); onNext(); }} className="p-6 space-y-4 max-w-sm mx-auto">
       <h2 className="text-h1 font-bold text-jet-dark mb-6">Card Details</h2>
 
-      {/* Link Input */}
+      {/* --- STEP 1: CONTENT INPUT (Based on Type) --- */}
+      
       {cardType === 'link' && (
         <Input
           key="card-url-input"
@@ -137,7 +170,6 @@ export const CardDetailsStep = memo(function CardDetailsStep({
         />
       )}
 
-      {/* Image Input */}
       {cardType === 'image' && (
         <FileUploadZone
           type="image"
@@ -154,7 +186,6 @@ export const CardDetailsStep = memo(function CardDetailsStep({
         />
       )}
 
-      {/* Docs Input */}
       {cardType === 'docs' && (
         <FileUploadZone
           type="docs"
@@ -176,6 +207,8 @@ export const CardDetailsStep = memo(function CardDetailsStep({
         </div>
       )}
 
+      {/* --- STEP 2: METADATA --- */}
+
       <Input
         key="card-title-input"
         id="card-title-input"
@@ -196,6 +229,69 @@ export const CardDetailsStep = memo(function CardDetailsStep({
         disabled={isLoading}
       />
 
+      {/* --- COVER IMAGE SECTION (NEW) --- */}
+      <div className="space-y-2">
+        {/* FIX: Replaced custom Label with standard label tag */}
+        <label className="block text-sm font-medium text-jet-dark">
+          Cover Image
+        </label>
+        
+        <div className="flex gap-4 mb-2 text-sm">
+          <button 
+            type="button" 
+            onClick={() => setCoverMode('url')}
+            className={`pb-1 border-b-2 transition-colors ${coverMode === 'url' ? 'border-emerald text-emerald-dark font-medium' : 'border-transparent text-gray-500'}`}
+          >
+            Paste URL
+          </button>
+          <button 
+            type="button" 
+            onClick={() => setCoverMode('upload')}
+            className={`pb-1 border-b-2 transition-colors ${coverMode === 'upload' ? 'border-emerald text-emerald-dark font-medium' : 'border-transparent text-gray-500'}`}
+          >
+            Upload
+          </button>
+        </div>
+
+        {coverMode === 'url' && (
+          <Input
+            placeholder="https://..."
+            value={imageUrl || ''}
+            onChange={(e) => onImageUrlChange(e.target.value)}
+            disabled={isLoading}
+          />
+        )}
+
+        {coverMode === 'upload' && (
+          <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors">
+            {isUploadingCover ? (
+              <Loader size="sm" />
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 mb-2">Click to upload or drag and drop</p>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleCoverUpload} 
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+                />
+              </>
+            )}
+          </div>
+        )}
+
+        {imageUrl && (
+          <div className="mt-3 relative w-full h-40 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+            <img 
+              src={imageUrl} 
+              alt="Cover Preview" 
+              className="w-full h-full object-cover" 
+              onError={(e) => (e.currentTarget.style.display = 'none')}
+            />
+          </div>
+        )}
+      </div>
+
       <Input
         key="card-description-input"
         id="card-description-input"
@@ -215,7 +311,6 @@ export const CardDetailsStep = memo(function CardDetailsStep({
         disabled={isLoading}
       />
 
-      {/* Visibility Toggle - Only for Stacqers */}
       {canMakePublic && (
         <div className="flex items-center gap-2 py-2">
           <input
@@ -238,7 +333,7 @@ export const CardDetailsStep = memo(function CardDetailsStep({
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 pt-2">
         <Button
           type="button"
           variant="outline"
@@ -252,7 +347,7 @@ export const CardDetailsStep = memo(function CardDetailsStep({
           type="submit"
           variant="primary"
           className="flex-1"
-          disabled={isLoading || isFetchingMetadata}
+          disabled={isLoading || isFetchingMetadata || isUploadingCover}
         >
           Continue
         </Button>

@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { PasswordInput } from '@/components/ui/PasswordInput';
-import { trackEvent } from '@/lib/analytics';
-import Link from 'next/link';
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
+import { Loader } from "@/components/ui/Loader";
+import { trackEvent } from "@/lib/analytics";
+import Link from "next/link";
 
 interface LoginFormContentProps {
   onSuccess?: () => void;
@@ -17,70 +17,63 @@ interface LoginFormContentProps {
   isFullPage?: boolean;
 }
 
-export function LoginFormContent({ 
-  onSuccess, 
+export function LoginFormContent({
+  onSuccess,
   onSwitchToSignup,
   showLogo = true,
-  isFullPage = false 
+  isFullPage = false,
 }: LoginFormContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false); // <--- Prevents flicker
 
   const handleGoogleSignIn = async () => {
-    setError('');
+    setError("");
     setIsOAuthLoading(true);
 
     try {
       const supabase = createClient();
-      
-      // Construct redirect URL safely, preserving ?next= if present
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
       if (!origin) {
-        setError('Unable to determine origin. Please refresh the page.');
+        setError("Unable to determine origin. Please refresh the page.");
         setIsOAuthLoading(false);
         return;
       }
 
-      const next = searchParams?.get('next') || '/';
-      const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
-      
-      console.log('Initiating OAuth with redirectTo:', redirectTo);
-      
-      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+      const next = searchParams?.get("next") || "/";
+      const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(
+        next
+      )}`;
+
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
         options: {
           redirectTo,
           queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
+            access_type: "offline",
+            prompt: "consent",
           },
         },
       });
 
-      if (oauthError) {
-        console.error('OAuth error:', oauthError);
-        setError(oauthError.message || 'Failed to initiate Google sign-in. Please check your Supabase configuration.');
-        setIsOAuthLoading(false);
-      } else if (data?.url) {
-        // OAuth URL generated successfully, redirect will happen automatically
-        console.log('OAuth URL generated successfully');
-      }
-      // Note: User will be redirected to Google, so we don't need to handle success here
-    } catch (err) {
-      console.error('OAuth error:', err);
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      if (oauthError) throw oauthError;
+      // User redirects to Google; loading state persists
+    } catch (err: any) {
+      console.error("OAuth error:", err);
+      setError(err.message || "An unexpected error occurred");
       setIsOAuthLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
@@ -90,62 +83,74 @@ export function LoginFormContent({
         password,
       });
 
-      if (signInError) {
-        setError(signInError.message);
-        setIsLoading(false);
-        return;
-      }
+      if (signInError) throw signInError;
 
-      // Get user ID for analytics
-      const { data: { user } } = await supabase.auth.getUser();
+      // Analytics
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
-        trackEvent.login(user.id, 'email');
+        trackEvent.login(user.id, "email");
       }
 
-      // Success - handle navigation
-      const next = searchParams?.get('next') || '/';
+      // --- CRITICAL FLICKER FIX ---
+      // 1. Show redirect loader immediately
+      setIsRedirecting(true);
+
+      // 2. Determine destination
+      const next = searchParams?.get("next") || "/";
+
       if (isFullPage) {
+        // Hard navigation ensures clean state for full pages
         router.push(next);
         router.refresh();
       } else {
-        onSuccess?.();
-        // Force a hard navigation to ensure the page updates immediately
-        window.location.href = next;
+        // For Modals: Refresh the server components (Landing -> Feed)
+        // We do NOT call onSuccess() immediately to avoid closing the modal
+        // and revealing the Landing page before it transforms.
+        router.refresh();
+
+        // Optional: Call onSuccess after a delay if you need to close the modal explicitly
+        // But usually, the route change or UI update handles it.
+        if (onSuccess) {
+          setTimeout(onSuccess, 500);
+        }
       }
-    } catch (err) {
-      setError('An unexpected error occurred');
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred");
       setIsLoading(false);
+      setIsRedirecting(false);
     }
   };
+
+  // 3. Show Loading State during transition
+  if (isRedirecting) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 min-h-[400px]">
+        <Loader size="lg" />
+        <p className="mt-4 text-gray-muted animate-pulse font-medium">
+          Setting up your feed...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
       {showLogo && (
         <div className="text-center mb-6">
-          {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-4">
             <div className="w-10 h-10 bg-emerald rounded-lg flex items-center justify-center text-white font-bold text-lg">
               S
             </div>
             <span className="text-h2 font-bold text-jet-dark">Stacq</span>
           </div>
-          
-          {/* Welcome Text */}
-          <h2 className="text-h2 font-semibold mb-2">
-            Welcome back
-          </h2>
+          <h2 className="text-h2 font-semibold mb-2">Welcome back</h2>
           <p className="text-body text-gray-muted">
             Sign in to your account to continue
           </p>
         </div>
       )}
-
-      <div className="max-w-sm mx-auto space-y-4">
-        
-
-        
-        
-      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 max-w-sm mx-auto">
         <Input
@@ -155,7 +160,7 @@ export function LoginFormContent({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          disabled={isLoading}
+          disabled={isLoading || isOAuthLoading}
         />
 
         <PasswordInput
@@ -164,7 +169,7 @@ export function LoginFormContent({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          disabled={isLoading}
+          disabled={isLoading || isOAuthLoading}
         />
 
         {error && (
@@ -174,25 +179,12 @@ export function LoginFormContent({
         )}
 
         <div className="flex items-center justify-between">
-          {isFullPage ? (
-            <Link
-              href="/reset-password"
-              className="text-small text-jet hover:underline"
-            >
-              Forgot password?
-            </Link>
-          ) : (
-            <a
-              href="/reset-password"
-              className="text-small text-jet hover:underline"
-              onClick={(e) => {
-                e.preventDefault();
-                router.push('/reset-password');
-              }}
-            >
-              Forgot password?
-            </a>
-          )}
+          <Link
+            href="/reset-password"
+            className="text-small text-jet hover:underline ml-auto"
+          >
+            Forgot password?
+          </Link>
         </div>
 
         <Button
@@ -200,21 +192,25 @@ export function LoginFormContent({
           variant="primary"
           className="w-full"
           isLoading={isLoading}
+          disabled={isOAuthLoading}
         >
           Sign in
         </Button>
       </form>
 
-      <div className="relative my-5">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-light"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-muted">Or continue with email</span>
-          </div>
+      <div className="relative my-5 max-w-sm mx-auto">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-light"></div>
         </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-white text-gray-muted">
+            Or continue with
+          </span>
+        </div>
+      </div>
 
-      <Button
+      <div className="max-w-sm mx-auto">
+        <Button
           type="button"
           variant="outline"
           className="w-full flex items-center justify-center gap-2"
@@ -240,29 +236,21 @@ export function LoginFormContent({
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          Continue with Google
+          Google
         </Button>
+      </div>
 
       <div className="mt-6 text-center">
         <p className="text-body text-gray-muted">
-          Don&apos;t have an account?{' '}
-          {isFullPage ? (
-            <Link href="/signup" className="text-jet font-medium hover:underline">
-              Sign up
-            </Link>
-          ) : (
-            <button
-              onClick={() => {
-                onSwitchToSignup?.();
-              }}
-              className="text-jet font-medium hover:underline"
-            >
-              Sign up
-            </button>
-          )}
+          Don&apos;t have an account?{" "}
+          <button
+            onClick={() => onSwitchToSignup?.()}
+            className="text-jet font-medium hover:underline"
+          >
+            Sign up
+          </button>
         </p>
       </div>
     </>
   );
 }
-
