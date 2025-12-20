@@ -1,3 +1,5 @@
+import { Result, PaginationInput, PaginatedResult } from "@/lib/contracts";
+
 export interface User {
   id: string;
   username?: string;
@@ -49,24 +51,24 @@ export interface Collection {
   [key: string]: any;
 }
 
-// --- Repository Interfaces ( The "Contract" ) ---
+// --- Updated Repository Contracts ---
+// Notice: Every method now returns Promise<Result<T>>
 
 export interface CardRepository {
-  getById(id: string): Promise<Card | null>;
-  getTrending(limit: number): Promise<Card[]>;
-  create(data: Partial<Card>): Promise<Card>;
-  update(id: string, data: Partial<Card>): Promise<Card>;
-  delete(id: string): Promise<boolean>;
+  getById(id: string): Promise<Result<Card>>;
+  getTrending(limit: number): Promise<Result<Card[]>>;
+  create(data: Partial<Card>): Promise<Result<Card>>;
+  update(id: string, data: Partial<Card>): Promise<Result<Card>>;
+  delete(id: string): Promise<Result<boolean>>;
 }
 
 export interface CollectionRepository {
-  getById(id: string): Promise<Collection | null>;
-  getFeatured(): Promise<Collection[]>;
-  create(data: Partial<Collection>): Promise<Collection>;
-  update(id: string, data: Partial<Collection>): Promise<Collection>;
+  getById(id: string): Promise<Result<Collection>>;
+  getFeatured(pagination?: PaginationInput): Promise<Result<PaginatedResult<Collection>>>;
+  create(data: Partial<Collection>): Promise<Result<Collection>>;
 }
 
 export interface UserRepository {
-  getCurrentUser(): Promise<User | null>;
-  getProfile(username: string): Promise<User | null>;
+  getCurrentUser(): Promise<Result<User>>;
+  getProfile(username: string): Promise<Result<User>>;
 }
