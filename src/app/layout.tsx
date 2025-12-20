@@ -7,6 +7,8 @@ import { SuppressMixpanelErrors } from "@/components/SuppressMixpanelErrors";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LandingPageButtonsProvider } from "@/components/landing/LandingPageButtons";
+import { WebVitals } from "@/components/analytics/WebVitals";
+
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -32,6 +34,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SuppressMixpanelErrors />
+        <WebVitals />
         <ErrorBoundary>
           <AuthProvider>
             <ToastProvider>
