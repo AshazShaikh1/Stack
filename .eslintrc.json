@@ -1,4 +1,30 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "no-restricted-imports": [
+      "warn", 
+      {
+        "patterns": [
+          {
+            "group": ["@/lib/supabase/*"],
+            "message": "🛑 ARCHITECTURE VIOLATION: Direct access to Supabase is forbidden in this file. You must use the Data Access Layer (db) imported from '@/lib/data'. See ARCHITECTURE.md for details."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/lib/data/adapters/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["src/middleware.ts"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
 }
-

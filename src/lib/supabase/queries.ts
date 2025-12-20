@@ -1,5 +1,6 @@
 // Core user fields needed for avatars/links
 export const SELECT_USER_BASIC = `
+  id,
   username, 
   display_name, 
   avatar_url
