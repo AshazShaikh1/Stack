@@ -4,7 +4,7 @@
  * Feature flag: ranking/final-algo
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from "vitest";
 import { computeRawScore, computeNormalizedScore, computeStats, DEFAULT_CONFIG } from '../algorithm';
 import type { RankingSignals } from '../algorithm';
 
